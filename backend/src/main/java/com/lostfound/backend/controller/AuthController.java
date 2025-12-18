@@ -1,12 +1,12 @@
 package com.lostfound.backend.controller;
 
 import com.lostfound.backend.dto.LoginRequest;
-import com.lostfound.backend.service.AuthService;
 import org.springframework.http.ResponseEntity;
+import com.lostfound.backend.service.AuthService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.Map;
 
