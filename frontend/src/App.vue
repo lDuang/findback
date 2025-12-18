@@ -11,7 +11,7 @@
       </el-menu>
       <div class="user-panel">
         <template v-if="auth.user">
-          <span class="user-meta">ID：{{ auth.user.userId }} · 身份：{{ roleLabel }}</span>
+          <span class="user-meta">用户：{{ displayName }} · 身份：{{ roleLabel }}</span>
           <el-button type="text" @click="logout">退出登录</el-button>
         </template>
         <template v-else>
@@ -38,6 +38,7 @@ const auth = useAuthStore();
 
 const activeRoute = computed(() => route.path);
 const normalizedRole = computed(() => normalizeRole(auth.user?.role));
+const displayName = computed(() => auth.user?.username || auth.user?.userId || '');
 const isAdmin = computed(() => normalizedRole.value === 'ADMIN');
 const roleLabel = computed(() => {
   if (normalizedRole.value === 'ADMIN') return '管理员';

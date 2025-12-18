@@ -10,6 +10,7 @@ export function cacheUser(user) {
       STORAGE_KEY,
       JSON.stringify({
         userId: user.userId,
+        username: user.username,
         role: normalizeRole(user.role)
       })
     );
@@ -26,6 +27,7 @@ export function restoreCachedUser() {
     if (!parsed?.userId || !parsed?.role) return null;
     return {
       userId: parsed.userId,
+      username: parsed.username,
       role: normalizeRole(parsed.role)
     };
   } catch (error) {

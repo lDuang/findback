@@ -10,13 +10,14 @@ export const useAuthStore = defineStore('auth', {
     async login(username, password) {
       const { data } = await client.post('/auth/login', { username, password });
       const userId = data?.userId;
+      const usernameFromResponse = data?.username;
       const role = normalizeRole(data?.role);
 
       if (!userId || !role) {
         throw new Error('登录响应异常：缺少用户信息');
       }
 
-      this.user = { userId, role };
+      this.user = { userId, username: usernameFromResponse || username, role };
       cacheUser(this.user);
     },
     logout() {

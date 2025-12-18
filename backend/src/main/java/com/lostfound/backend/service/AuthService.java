@@ -26,6 +26,7 @@ public class AuthService {
                 .map(user -> {
                     Map<String, Object> payload = new HashMap<>();
                     payload.put("userId", user.getId());
+                    payload.put("username", user.getUsername());
                     payload.put("role", normalizeRole(user.getRole()));
                     return payload;
                 })
