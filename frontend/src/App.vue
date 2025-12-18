@@ -42,7 +42,11 @@ const auth = useAuthStore();
 const activeRoute = computed(() => route.path);
 const isLoggedIn = computed(() => !!auth.user);
 const normalizedRole = computed(() => normalizeRole(auth.user?.role));
-const displayName = computed(() => auth.user?.username || `ID：${auth.user?.userId ?? ''}`);
+const displayName = computed(() => {
+  if (auth.user?.username) return auth.user.username;
+  if (auth.user) return '已登录用户';
+  return '';
+});
 const isAdmin = computed(() => normalizedRole.value === 'ADMIN');
 const roleLabel = computed(() => {
   if (normalizedRole.value === 'ADMIN') return '管理员';
