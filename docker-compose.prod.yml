@@ -47,3 +47,4 @@ services:
 volumes:
   mysql-data:
   uploads-data:
+
