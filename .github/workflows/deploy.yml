@@ -2,13 +2,21 @@ name: CI-CD
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
+    # ===== 全局环境变量 =====
+    env:
+      IMAGE_TAG: ${{ github.sha }}
+      REGISTRY: ghcr.io
+      IMAGE_NAMESPACE: lduang
+
     steps:
+      # ===== 拉代码 =====
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -21,7 +29,7 @@ jobs:
       - name: Build frontend
         run: |
           cd frontend
-          npm install
+          npm ci
           npm run build
 
       # ===== 后端构建 =====
@@ -40,7 +48,7 @@ jobs:
       - name: Login GHCR
         uses: docker/login-action@v3
         with:
-          registry: ghcr.io
+          registry: ${{ env.REGISTRY }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
@@ -51,7 +59,9 @@ jobs:
           context: .
           file: backend/Dockerfile
           push: true
-          tags: ghcr.io/lduang/lost-backend:latest
+          tags: |
+            ghcr.io/lduang/findback-back:${{ env.IMAGE_TAG }}
+            ghcr.io/lduang/findback-back:latest
 
       # ===== 构建并推送前端镜像 =====
       - name: Build & Push Frontend Image
@@ -60,16 +70,18 @@ jobs:
           context: .
           file: frontend/Dockerfile
           push: true
-          tags: ghcr.io/lduang/lost-frontend:latest
+          tags: |
+            ghcr.io/lduang/findback-front:${{ env.IMAGE_TAG }}
+            ghcr.io/lduang/findback-front:latest
 
-      # ===== 推送后自动部署到服务器 =====
-      # - name: Deploy to server
+      # ===== 可选：自动部署到服务器 =====
+      # - name: Deploy to Server
       #   uses: appleboy/ssh-action@v1.0.3
       #   with:
       #     host: ${{ secrets.SERVER_HOST }}
       #     username: ${{ secrets.SERVER_USER }}
       #     key: ${{ secrets.SERVER_SSH_KEY }}
       #     script: |
-      #       cd /root/test
+      #       cd /root/findback
       #       docker compose -f docker-compose.prod.yml pull
       #       docker compose -f docker-compose.prod.yml up -d
