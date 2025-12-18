@@ -47,6 +47,9 @@ async function login() {
   loading.value = true;
   try {
     await auth.login(form.username, form.password);
+    if (!auth.user) {
+      throw new Error('登录状态异常：未获取到用户信息');
+    }
     ElMessage.success('登录成功');
     const redirect = (route.query.redirect as string) || '/';
     router.push(redirect);

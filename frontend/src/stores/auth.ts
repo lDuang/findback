@@ -10,9 +10,17 @@ interface LoginResponse {
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: restoreCachedUser() as AuthUser | null
+    user: null as AuthUser | null,
+    isRestoring: true
   }),
+  getters: {
+    isLoggedIn: (state) => Boolean(state.user)
+  },
   actions: {
+    restoreFromCache() {
+      this.user = restoreCachedUser();
+      this.isRestoring = false;
+    },
     async login(username: string, password: string) {
       const { data } = await client.post<LoginResponse>('/auth/login', { username, password });
       const userId = data?.userId;
@@ -25,10 +33,12 @@ export const useAuthStore = defineStore('auth', {
 
       this.user = { userId, username: usernameFromResponse || username, role };
       cacheUser(this.user);
+      this.isRestoring = false;
     },
     logout() {
       this.user = null;
       cacheUser(null);
+      this.isRestoring = false;
     }
   }
 });
