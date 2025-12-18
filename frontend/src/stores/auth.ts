@@ -1,17 +1,23 @@
 import { defineStore } from 'pinia';
 import client from '../api/client';
-import { cacheUser, normalizeRole, restoreCachedUser } from '../utils/auth';
+import { cacheUser, normalizeRole, restoreCachedUser, type AuthUser } from '../utils/auth';
+
+interface LoginResponse {
+  userId?: number | string;
+  username?: string;
+  role?: string;
+}
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
-    user: restoreCachedUser()
+    user: restoreCachedUser() as AuthUser | null
   }),
   actions: {
-    async login(username, password) {
-      const { data } = await client.post('/auth/login', { username, password });
+    async login(username: string, password: string) {
+      const { data } = await client.post<LoginResponse>('/auth/login', { username, password });
       const userId = data?.userId;
       const usernameFromResponse = data?.username;
-      const role = normalizeRole(data?.role);
+      const role = normalizeRole(data?.role ?? '');
 
       if (!userId || !role) {
         throw new Error('登录响应异常：缺少用户信息');

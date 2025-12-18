@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, type RouteLocationNormalized } from 'vue-router';
 import Home from '../views/Home.vue';
 import ItemsList from '../views/ItemsList.vue';
 import ItemDetail from '../views/ItemDetail.vue';
@@ -7,6 +7,12 @@ import UserCenter from '../views/UserCenter.vue';
 import AdminDashboard from '../views/AdminDashboard.vue';
 import { useAuthStore } from '../stores/auth';
 import { normalizeRole } from '../utils/auth';
+
+type AppRouteMeta = RouteLocationNormalized['meta'] & {
+  requiresAuth?: boolean;
+  roles?: string[];
+  title?: string;
+};
 
 const router = createRouter({
   history: createWebHistory(),
@@ -32,9 +38,10 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const auth = useAuthStore();
-  const requiresAuth = to.meta?.requiresAuth;
-  const allowedRoles = to.meta?.roles;
-  const userRole = normalizeRole(auth.user?.role);
+  const meta = (to.meta || {}) as AppRouteMeta;
+  const requiresAuth = meta.requiresAuth;
+  const allowedRoles = meta.roles;
+  const userRole = normalizeRole(auth.user?.role ?? '');
 
   if (requiresAuth && !auth.user) {
     return { name: 'login', query: { redirect: to.fullPath } };
@@ -49,7 +56,8 @@ router.beforeEach((to) => {
 
 router.afterEach((to) => {
   const baseTitle = '失物招领系统';
-  const pageTitle = to.meta?.title;
+  const meta = (to.meta || {}) as AppRouteMeta;
+  const pageTitle = meta.title;
   document.title = pageTitle ? `${pageTitle} - ${baseTitle}` : baseTitle;
 });
 

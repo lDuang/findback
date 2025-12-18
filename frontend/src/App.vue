@@ -5,28 +5,31 @@
       <el-menu mode="horizontal" :default-active="activeRoute" router class="app-menu">
         <el-menu-item index="/">首页</el-menu-item>
         <el-menu-item index="/items">物品列表</el-menu-item>
-        <el-menu-item index="/login" v-if="!isLoggedIn">登录</el-menu-item>
-        <el-menu-item index="/user" v-if="isLoggedIn">用户中心</el-menu-item>
-        <el-menu-item index="/admin" v-if="isAdmin">管理员面板</el-menu-item>
+        <el-menu-item v-if="!isLoggedIn" index="/login">登录</el-menu-item>
+        <el-menu-item v-if="isLoggedIn" index="/user">用户中心</el-menu-item>
+        <el-menu-item v-if="isAdmin" index="/admin">管理员面板</el-menu-item>
       </el-menu>
       <div class="user-panel">
         <template v-if="auth.user">
-          <span class="user-meta">用户：{{ displayName }} · 身份：{{ roleLabel }}</span>
-          <el-button type="text" @click="logout">退出登录</el-button>
+          <div class="user-meta">
+            <p class="user-name">{{ displayName }}</p>
+            <p class="user-role">{{ roleLabel }}</p>
+          </div>
+          <el-button type="primary" link @click="logout">退出</el-button>
         </template>
         <template v-else>
-          <span class="user-meta">访客</span>
+          <span class="user-role">访客</span>
         </template>
       </div>
     </el-header>
 
-    <el-main>
+    <el-main class="app-main">
       <router-view />
     </el-main>
   </el-container>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
@@ -39,12 +42,12 @@ const auth = useAuthStore();
 const activeRoute = computed(() => route.path);
 const isLoggedIn = computed(() => !!auth.user);
 const normalizedRole = computed(() => normalizeRole(auth.user?.role));
-const displayName = computed(() => auth.user?.username || auth.user?.userId || '');
+const displayName = computed(() => auth.user?.username || `ID：${auth.user?.userId ?? ''}`);
 const isAdmin = computed(() => normalizedRole.value === 'ADMIN');
 const roleLabel = computed(() => {
   if (normalizedRole.value === 'ADMIN') return '管理员';
   if (normalizedRole.value === 'USER') return '普通用户';
-  return normalizedRole.value || '未知';
+  return normalizedRole.value || '未知身份';
 });
 
 function logout() {
@@ -56,6 +59,7 @@ function logout() {
 <style scoped>
 .app-shell {
   min-height: 100vh;
+  background: #f8fafc;
 }
 
 .app-header {
@@ -64,23 +68,58 @@ function logout() {
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid var(--el-border-color);
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.08), rgba(16, 185, 129, 0.08));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 24px -16px rgba(15, 23, 42, 0.3);
 }
 
 .brand {
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 0.04em;
 }
 
 .app-menu {
   flex: 1;
+  background: transparent;
 }
 
 .user-panel {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1.2;
+}
+
+.user-name {
+  margin: 0;
+  font-weight: 700;
+}
+
+.user-role {
+  margin: 0;
   color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+
+.app-main {
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .app-header {
+    flex-wrap: wrap;
+    padding: 12px 8px;
+  }
+
+  .user-panel {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

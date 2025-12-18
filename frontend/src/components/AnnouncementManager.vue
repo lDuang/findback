@@ -18,17 +18,18 @@
   </el-card>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { onMounted, reactive } from 'vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import client from '../api/client';
 import { buildDisplayError } from '../utils/error';
+import type { Announcement } from '../types';
 
-const announcements = reactive([]);
+const announcements = reactive<Announcement[]>([]);
 
 onMounted(async () => {
   try {
-    const { data } = await client.get('/announcements');
+    const { data } = await client.get<Announcement[]>('/announcements');
     if (Array.isArray(data)) {
       announcements.splice(0, announcements.length, ...data);
       return;
@@ -39,6 +40,7 @@ onMounted(async () => {
     ElMessage.warning((message || '公告列表加载失败') + '，已使用本地占位数据。');
   }
   announcements.splice(0, announcements.length, {
+    id: 'local-welcome',
     title: '欢迎使用',
     content: '请清晰描述失物信息。'
   });
@@ -50,9 +52,9 @@ async function addAnnouncement() {
       confirmButtonText: '创建',
       cancelButtonText: '取消'
     });
-    const announcement = { title: '公告', content: value };
+    const announcement: Announcement = { title: '公告', content: value, id: Date.now() };
     try {
-      const { data } = await client.post('/announcements', announcement);
+      const { data } = await client.post<Announcement>('/announcements', announcement);
       announcements.push(data || { ...announcement, id: Date.now() });
     } catch (error) {
       console.warn('Fallback to local announcement', error);
@@ -66,7 +68,7 @@ async function addAnnouncement() {
   }
 }
 
-async function remove(index) {
+async function remove(index: number) {
   const item = announcements[index];
   await ElMessageBox.confirm(`删除公告“${item.title}”？`, '确认操作', {
     type: 'warning'

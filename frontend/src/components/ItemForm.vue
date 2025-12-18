@@ -39,20 +39,16 @@
   </el-form>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, type UploadRequestOptions } from 'element-plus';
 import client from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import { buildDisplayError } from '../utils/error';
+import type { LostItem } from '../types';
 
-const props = defineProps({
-  item: {
-    type: Object,
-    default: null
-  }
-});
-const emit = defineEmits(['created']);
+const props = defineProps<{ item?: LostItem | null }>();
+const emit = defineEmits<{ (event: 'created', item: LostItem): void }>();
 const auth = useAuthStore();
 const loading = ref(false);
 const uploading = ref(false);
@@ -64,7 +60,7 @@ const submitLabel = computed(() => (isEditing.value ? '保存修改' : '创建�
 watch(
   () => props.item,
   (value) => {
-    const next = buildInitialForm(value);
+    const next = buildInitialForm(value || undefined);
     Object.assign(form, next);
   },
   { deep: true }
@@ -83,9 +79,13 @@ async function submit() {
   try {
     const payload = { ...form };
     const { data } = isEditing.value
-      ? await client.put(`/items/${props.item.id}`, payload)
-      : await client.post('/items', payload);
-    const savedItem = data || { ...payload, id: props.item?.id || Date.now().toString() };
+      ? await client.put<LostItem>(`/items/${props.item?.id}`, payload)
+      : await client.post<LostItem>('/items', payload);
+    const savedItem: LostItem = data || {
+      ...payload,
+      id: props.item?.id || Date.now().toString(),
+      userId: auth.user?.userId ?? ''
+    };
     ElMessage.success(isEditing.value ? '物品已更新' : '物品已创建');
     emit('created', savedItem);
     Object.assign(form, isEditing.value ? buildInitialForm(savedItem) : buildInitialForm());
@@ -98,7 +98,7 @@ async function submit() {
   }
 }
 
-function buildInitialForm(item) {
+function buildInitialForm(item?: Partial<LostItem>) {
   return {
     title: item?.title || '',
     description: item?.description || '',
@@ -108,7 +108,7 @@ function buildInitialForm(item) {
   };
 }
 
-async function handleUpload(options) {
+async function handleUpload(options: UploadRequestOptions) {
   if (!options.file) {
     return;
   }
@@ -116,17 +116,17 @@ async function handleUpload(options) {
   try {
     const formData = new FormData();
     formData.append('file', options.file);
-    const { data } = await client.post('/files/upload', formData, {
+    const { data } = await client.post<{ url: string }>('/files/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     form.imageUrl = data.url;
     ElMessage.success('图片上传成功');
-    options.onSuccess?.(data, options.file);
+    options.onSuccess?.(data);
   } catch (error) {
     console.error(error);
     const message = buildDisplayError('图片上传失败', error);
     ElMessage.error(message || '图片上传失败');
-    options.onError?.(error);
+    options.onError?.(error as Parameters<NonNullable<UploadRequestOptions['onError']>>[0]);
   } finally {
     uploading.value = false;
   }

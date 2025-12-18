@@ -38,7 +38,7 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { onMounted, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import client from '../api/client';
@@ -46,10 +46,11 @@ import ItemForm from '../components/ItemForm.vue';
 import ClaimForm from '../components/ClaimForm.vue';
 import { statusLabel } from '../utils/status';
 import { extractErrorMessage } from '../utils/error';
+import type { Claim, LostItem } from '../types';
 
 const auth = useAuthStore();
-const myItems = ref([]);
-const myClaims = ref([]);
+const myItems = ref<LostItem[]>([]);
+const myClaims = ref<Claim[]>([]);
 const itemEmptyText = ref('请登录后查看我的物品。');
 const claimEmptyText = ref('请登录后查看我的认领。');
 
@@ -60,7 +61,7 @@ onMounted(async () => {
   claimEmptyText.value = '正在加载我的认领...';
 
   try {
-    const { data } = await client.get('/items', { params: { userId: auth.user.userId } });
+    const { data } = await client.get<LostItem[]>('/items', { params: { userId: auth.user.userId } });
     if (Array.isArray(data)) {
       myItems.value = data;
       itemEmptyText.value = data.length ? '' : '暂无物品记录';
@@ -74,7 +75,7 @@ onMounted(async () => {
   }
 
   try {
-    const { data } = await client.get('/claims', { params: { userId: auth.user.userId } });
+    const { data } = await client.get<Claim[]>('/claims', { params: { userId: auth.user.userId } });
     if (Array.isArray(data)) {
       myClaims.value = data;
       claimEmptyText.value = data.length ? '' : '暂无认领记录';
@@ -88,7 +89,7 @@ onMounted(async () => {
   }
 });
 
-function formatStatus(row, column, cellValue) {
+function formatStatus(_row: Claim | LostItem, _column: unknown, cellValue: string) {
   return statusLabel(cellValue);
 }
 </script>
@@ -100,6 +101,10 @@ function formatStatus(row, column, cellValue) {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  padding: 24px 16px 48px;
+  background: radial-gradient(circle at 20% 20%, rgba(79, 70, 229, 0.05), transparent 34%),
+    radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.05), transparent 32%),
+    #f9fafb;
 }
 
 .user-alert {

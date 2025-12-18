@@ -29,20 +29,16 @@
   </el-form>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, type UploadRequestOptions } from 'element-plus';
 import client from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import { buildDisplayError } from '../utils/error';
+import type { Claim } from '../types';
 
-const props = defineProps({
-  itemId: {
-    type: [String, Number],
-    default: ''
-  }
-});
-const emit = defineEmits(['submitted']);
+const props = defineProps<{ itemId?: string | number }>();
+const emit = defineEmits<{ (event: 'submitted', claim: Claim): void }>();
 const auth = useAuthStore();
 const loading = ref(false);
 const form = reactive({
@@ -80,7 +76,7 @@ async function submit() {
   loading.value = true;
   try {
     const payload = { itemId, reason: form.reason, evidenceUrl: form.evidenceUrl };
-    const { data } = await client.post('/claims', payload);
+    const { data } = await client.post<Claim>('/claims', payload);
     ElMessage.success('认领已提交');
     emit('submitted', data || { ...payload, id: Date.now().toString(), status: 'PENDING', userId: auth.user.userId });
     form.itemId = props.itemId || '';
@@ -95,23 +91,23 @@ async function submit() {
   }
 }
 
-async function handleUpload(options) {
+async function handleUpload(options: UploadRequestOptions) {
   if (!options.file) return;
   uploading.value = true;
   try {
     const formData = new FormData();
     formData.append('file', options.file);
-    const { data } = await client.post('/files/upload', formData, {
+    const { data } = await client.post<{ url: string }>('/files/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     form.evidenceUrl = data.url;
     ElMessage.success('凭证上传成功');
-    options.onSuccess?.(data, options.file);
+    options.onSuccess?.(data);
   } catch (error) {
     console.error(error);
     const message = buildDisplayError('凭证上传失败', error);
     ElMessage.error(message || '凭证上传失败');
-    options.onError?.(error);
+    options.onError?.(error as Parameters<NonNullable<UploadRequestOptions['onError']>>[0]);
   } finally {
     uploading.value = false;
   }

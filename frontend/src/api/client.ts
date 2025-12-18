@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios';
 import { normalizeRole, restoreCachedUser } from '../utils/auth';
 
-const client = axios.create({
+const client: AxiosInstance = axios.create({
   baseURL: '/api'
 });
 
-client.interceptors.request.use((config) => {
+client.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   try {
     const cachedUser = restoreCachedUser();
     if (cachedUser?.userId) {
