@@ -1,6 +1,7 @@
 package com.lostfound.backend.controller;
 
 import com.lostfound.backend.entity.User;
+import com.lostfound.backend.exception.NotFoundException;
 import com.lostfound.backend.model.UserContext;
 import com.lostfound.backend.repository.UserRepository;
 import com.lostfound.backend.service.AuthService;
@@ -65,7 +66,7 @@ public class AdminUserController {
         UserContext context = authService.extractContext(servletRequest.getHeader("X-User-Id"), servletRequest.getHeader("X-User-Role"));
         authService.ensureAdmin(context);
         if (!userRepository.existsById(id)) {
-            throw new IllegalArgumentException("User not found");
+            throw new NotFoundException("User not found");
         }
         userRepository.deleteById(id);
         return ResponseEntity.noContent().build();

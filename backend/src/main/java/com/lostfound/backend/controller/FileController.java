@@ -31,15 +31,10 @@ public class FileController {
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> upload(@RequestParam("file") MultipartFile file,
                                                       HttpServletRequest servletRequest) throws IOException {
-        Long uploaderId = null;
-        try {
-            UserContext context = authService.extractContext(
-                    servletRequest.getHeader("X-User-Id"),
-                    servletRequest.getHeader("X-User-Role"));
-            uploaderId = context.getUserId();
-        } catch (Exception ignored) {
-            // 上传允许匿名，但如果 headers 可用则记录上传者
-        }
+        UserContext context = authService.extractContext(
+                servletRequest.getHeader("X-User-Id"),
+                servletRequest.getHeader("X-User-Role"));
+        Long uploaderId = context.getUserId();
 
         MediaFile saved = fileStorageService.store(file, uploaderId);
         Map<String, Object> payload = new HashMap<>();

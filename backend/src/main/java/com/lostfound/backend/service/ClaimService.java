@@ -2,6 +2,7 @@ package com.lostfound.backend.service;
 
 import com.lostfound.backend.entity.Claim;
 import com.lostfound.backend.entity.LostItem;
+import com.lostfound.backend.exception.NotFoundException;
 import com.lostfound.backend.model.UserContext;
 import com.lostfound.backend.repository.ClaimRepository;
 import com.lostfound.backend.repository.LostItemRepository;
@@ -57,7 +58,7 @@ public class ClaimService {
 
         if (itemId != null) {
             LostItem item = lostItemRepository.findById(itemId)
-                    .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+                    .orElseThrow(() -> new NotFoundException("Item not found"));
             if (item.getUserId().equals(requesterId)) {
                 return claimRepository.findByItemId(itemId);
             }
@@ -95,9 +96,9 @@ public class ClaimService {
         }
         authService.ensureUserExists(context.getUserId());
         Claim existing = claimRepository.findById(claimId)
-                .orElseThrow(() -> new IllegalArgumentException("Claim not found"));
+                .orElseThrow(() -> new NotFoundException("Claim not found"));
         LostItem item = lostItemRepository.findById(existing.getItemId())
-                .orElseThrow(() -> new IllegalArgumentException("Related item missing"));
+                .orElseThrow(() -> new NotFoundException("Related item missing"));
         boolean isClaimOwner = existing.getUserId() != null && existing.getUserId().equals(context.getUserId());
         boolean isItemOwner = item.getUserId() != null && item.getUserId().equals(context.getUserId());
         if (!context.isAdmin() && !isClaimOwner && !isItemOwner) {
@@ -110,8 +111,14 @@ public class ClaimService {
     public void deleteClaim(Long claimId, UserContext context) {
         authService.ensureUserExists(context.getUserId());
         Claim existing = claimRepository.findById(claimId)
-                .orElseThrow(() -> new IllegalArgumentException("Claim not found"));
-        authService.ensureOwnershipOrAdmin(context, existing.getUserId());
+                .orElseThrow(() -> new NotFoundException("Claim not found"));
+        LostItem item = lostItemRepository.findById(existing.getItemId())
+                .orElseThrow(() -> new NotFoundException("Related item missing"));
+        boolean isClaimOwner = existing.getUserId() != null && existing.getUserId().equals(context.getUserId());
+        boolean isItemOwner = item.getUserId() != null && item.getUserId().equals(context.getUserId());
+        if (!context.isAdmin() && !isClaimOwner && !isItemOwner) {
+            throw new SecurityException("Operation not permitted for this user");
+        }
         claimRepository.delete(existing);
     }
 }

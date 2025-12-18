@@ -2,6 +2,7 @@ package com.lostfound.backend.controller;
 
 import com.lostfound.backend.dto.AnnouncementRequest;
 import com.lostfound.backend.entity.Announcement;
+import com.lostfound.backend.exception.NotFoundException;
 import com.lostfound.backend.model.UserContext;
 import com.lostfound.backend.repository.AnnouncementRepository;
 import com.lostfound.backend.service.AnnouncementService;
@@ -16,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -44,6 +44,7 @@ public class AnnouncementController {
     @PostMapping
     public ResponseEntity<Announcement> create(@RequestBody AnnouncementRequest request, HttpServletRequest servletRequest) {
         UserContext context = authService.extractContext(servletRequest.getHeader("X-User-Id"), servletRequest.getHeader("X-User-Role"));
+        authService.ensureAdmin(context);
         Announcement announcement = new Announcement();
         announcement.setTitle(request.getTitle());
         announcement.setContent(request.getContent());
@@ -55,7 +56,7 @@ public class AnnouncementController {
         UserContext context = authService.extractContext(servletRequest.getHeader("X-User-Id"), servletRequest.getHeader("X-User-Role"));
         authService.ensureAdmin(context);
         if (!announcementRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Announcement not found");
+            throw new NotFoundException("Announcement not found");
         }
         announcementRepository.deleteById(id);
         return ResponseEntity.noContent().build();

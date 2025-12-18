@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -44,10 +43,7 @@ public class FileStorageService {
         Path destination = destinationDir.resolve(storedName);
         file.transferTo(destination);
 
-        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/uploads/")
-                .path(storedName)
-                .toUriString();
+        String url = "/uploads/" + storedName;
 
         MediaFile mediaFile = new MediaFile();
         mediaFile.setFilename(originalName.isEmpty() ? storedName : originalName);
