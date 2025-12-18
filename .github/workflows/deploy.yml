@@ -40,7 +40,7 @@ jobs:
         if: steps.changes.outputs.frontend == 'true'
         run: |
           cd frontend
-          npm ci
+          npm install
           npm run build
 
       # ================== 后端 ==================
