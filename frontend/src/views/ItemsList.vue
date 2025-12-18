@@ -7,6 +7,18 @@
       type="info"
       show-icon
     />
+    <el-card class="panel filters">
+      <div class="filter-grid">
+        <el-input v-model="search" placeholder="搜索物品名称、地点或描述" clearable />
+        <el-select v-model="statusFilter" placeholder="按状态筛选" clearable filterable>
+          <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+        </el-select>
+        <el-select v-model="locationFilter" placeholder="按地点筛选" clearable filterable>
+          <el-option v-for="option in locationOptions" :key="option" :label="option" :value="option" />
+        </el-select>
+        <el-button link type="primary" @click="resetFilters">清除筛选</el-button>
+      </div>
+    </el-card>
     <el-row :gutter="20">
       <el-col :span="16">
         <el-card class="panel" v-loading="loading">
@@ -16,13 +28,7 @@
                 <p class="card-eyebrow">实时物品</p>
                 <span class="card-title">物品列表</span>
               </div>
-              <el-input
-                v-model="search"
-                placeholder="搜索物品名称、地点或描述"
-                size="small"
-                clearable
-                style="width: 220px"
-              />
+              <el-tag v-if="loadError" type="danger" effect="plain">加载出现问题</el-tag>
             </div>
           </template>
           <el-table
@@ -35,14 +41,18 @@
           >
             <el-table-column prop="title" label="物品名称" :formatter="formatTitle" min-width="160" />
             <el-table-column prop="location" label="地点" :formatter="formatLocation" min-width="120" />
-            <el-table-column prop="username" label="发布人" :formatter="formatOwner" min-width="140" />
-            <el-table-column prop="status" label="状态" :formatter="formatStatus" width="120" />
+            <el-table-column prop="status" label="状态" width="140">
+              <template #default="scope">
+                <el-tag :type="statusColor(scope.row.status)" disable-transitions>{{ formatStatus(scope.row, null, scope.row.status) }}</el-tag>
+              </template>
+            </el-table-column>
             <el-table-column
               prop="createdAt"
               label="创建时间"
               :formatter="formatCreatedAt"
               width="180"
             />
+            <el-table-column prop="username" label="发布人" :formatter="formatOwner" min-width="140" />
           </el-table>
         </el-card>
       </el-col>
@@ -76,7 +86,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import client from '../api/client';
 import ItemForm from '../components/ItemForm.vue';
-import { statusLabel } from '../utils/status';
+import { statusLabel, statusTagType } from '../utils/status';
 import { normalizeRole } from '../utils/auth';
 import { extractErrorMessage } from '../utils/error';
 import { formatDateTime, formatUserDisplay } from '../utils/format';
@@ -89,6 +99,9 @@ const items = ref<LostItem[]>([]);
 const search = ref('');
 const loadHint = ref('正在加载物品，请稍候');
 const loading = ref(false);
+const loadError = ref(false);
+const statusFilter = ref('');
+const locationFilter = ref('');
 const auth = useAuthStore();
 
 const normalizedRole = computed(() => normalizeRole(auth.user?.role));
@@ -106,6 +119,19 @@ const roleDescription = computed(() => {
   return '未登录状态下仅进行基础浏览，登录后即可按账号维度过滤并创建物品。';
 });
 
+const statusOptions = computed(() => [
+  { value: 'OPEN', label: statusLabel('OPEN') },
+  { value: 'CLAIMED', label: statusLabel('CLAIMED') },
+  { value: 'RESOLVED', label: statusLabel('RESOLVED') },
+  { value: 'CLOSED', label: statusLabel('CLOSED') }
+]);
+
+const locationOptions = computed(() =>
+  Array.from(new Set(items.value.map((item) => item.location).filter(Boolean))).map((location) =>
+    location as string
+  )
+);
+
 onMounted(async () => {
   await loadItems();
 });
@@ -120,6 +146,7 @@ watch(
 
 async function loadItems() {
   loading.value = true;
+  loadError.value = false;
   const params: Record<string, unknown> = {};
   if (isUser.value) {
     params.userId = auth.user?.userId;
@@ -143,6 +170,7 @@ async function loadItems() {
     console.warn('Failed to load items', error);
     const message = extractErrorMessage(error);
     loadHint.value = message ? `物品列表加载失败：${message}` : '物品列表加载失败，请稍后重试。';
+    loadError.value = true;
     ElMessage.error(loadHint.value);
   } finally {
     loading.value = false;
@@ -152,10 +180,17 @@ async function loadItems() {
 const filteredItems = computed(() =>
   items.value.filter((item) => {
     const query = search.value.trim().toLowerCase();
-    if (!query) return true;
-    return [item.title, item.description, item.location, item.username, item.status]
-      .map((field) => field?.toString?.().toLowerCase?.() || '')
-      .some((field) => field.includes(query));
+    if (
+      query &&
+      ![item.title, item.description, item.location, item.username, item.status]
+        .map((field) => field?.toString?.().toLowerCase?.() || '')
+        .some((field) => field.includes(query))
+    ) {
+      return false;
+    }
+    if (statusFilter.value && item.status !== statusFilter.value) return false;
+    if (locationFilter.value && item.location !== locationFilter.value) return false;
+    return true;
   })
 );
 
@@ -178,8 +213,18 @@ function addItem(newItem: LostItem) {
   ElMessage.success('物品已添加');
 }
 
+function resetFilters() {
+  search.value = '';
+  statusFilter.value = '';
+  locationFilter.value = '';
+}
+
 function formatStatus(_row: LostItem, _column: unknown, cellValue: string) {
   return statusLabel(cellValue);
+}
+
+function statusColor(status?: string) {
+  return statusTagType(status);
 }
 
 function formatLocation(_row: LostItem, _column: unknown, cellValue: string) {
@@ -239,6 +284,17 @@ function formatCreatedAt(_row: LostItem, _column: unknown, cellValue: string) {
 .panel {
   border-radius: 14px;
   box-shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.35);
+}
+
+.filters {
+  padding: 12px;
+}
+
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  align-items: center;
 }
 
 @media (max-width: 960px) {

@@ -7,21 +7,7 @@
       <el-input v-model="form.reason" type="textarea" placeholder="请提供认领证明或描述" />
     </el-form-item>
     <el-form-item label="上传凭证">
-      <div class="upload-wrapper">
-        <el-upload
-          class="upload-block"
-          :http-request="handleUpload"
-          :show-file-list="false"
-          accept="image/*"
-        >
-          <el-button :loading="uploading">上传图片</el-button>
-        </el-upload>
-        <div v-if="form.evidenceUrl" class="preview">
-          <el-image :src="form.evidenceUrl" fit="cover" style="width: 120px; height: 120px" />
-          <span class="preview-text">已上传</span>
-        </div>
-        <div v-else class="preview placeholder">未上传凭证</div>
-      </div>
+      <upload-card v-model="form.evidenceUrl" button-label="上传凭证" tip="建议上传清晰的实物照片" />
     </el-form-item>
     <el-form-item>
       <el-button type="primary" :loading="loading" @click="submit">提交认领</el-button>
@@ -31,8 +17,9 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { ElMessage, type UploadRequestOptions } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import client from '../api/client';
+import UploadCard from './UploadCard.vue';
 import { useAuthStore } from '../stores/auth';
 import { buildDisplayError } from '../utils/error';
 import { normalizeClaim } from '../utils/normalizers';
@@ -47,7 +34,6 @@ const form = reactive({
   reason: '',
   evidenceUrl: ''
 });
-const uploading = ref(false);
 
 const isItemLocked = computed(() => !!props.itemId);
 
@@ -101,48 +87,6 @@ async function submit() {
   }
 }
 
-async function handleUpload(options: UploadRequestOptions) {
-  if (!options.file) return;
-  uploading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append('file', options.file);
-    const { data } = await client.post<{ url: string }>('/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    form.evidenceUrl = data.url;
-    ElMessage.success('凭证上传成功');
-    options.onSuccess?.(data);
-  } catch (error) {
-    console.error(error);
-    const message = buildDisplayError('凭证上传失败', error);
-    ElMessage.error(message || '凭证上传失败');
-    options.onError?.(error as Parameters<NonNullable<UploadRequestOptions['onError']>>[0]);
-  } finally {
-    uploading.value = false;
-  }
-}
 </script>
 
-<style scoped>
-.upload-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.upload-block {
-  display: inline-flex;
-}
-.preview {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.preview.placeholder {
-  color: var(--el-text-color-secondary);
-}
-.preview-text {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-</style>
+<style scoped></style>

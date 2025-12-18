@@ -25,6 +25,7 @@ import { ElMessageBox, ElMessage } from 'element-plus';
 import client from '../api/client';
 import { buildDisplayError } from '../utils/error';
 import { formatDateTime } from '../utils/format';
+import { normalizeAnnouncement } from '../utils/normalizers';
 import type { Announcement } from '../types';
 
 const announcements = reactive<Announcement[]>([]);
@@ -33,14 +34,7 @@ onMounted(async () => {
   try {
     const { data } = await client.get<Announcement[]>('/announcements');
     if (Array.isArray(data)) {
-      announcements.splice(
-        0,
-        announcements.length,
-        ...data.map((item) => ({
-          ...item,
-          createdAt: item.createdAt || (item as Record<string, unknown>)?.created_at?.toString?.() || ''
-        }))
-      );
+      announcements.splice(0, announcements.length, ...data.map(normalizeAnnouncement));
       return;
     }
   } catch (error) {

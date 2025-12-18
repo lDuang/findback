@@ -40,6 +40,60 @@
       </div>
     </section>
 
+    <section class="updates">
+      <el-card class="banner-card" v-loading="bannersLoading">
+        <template #header>
+          <div class="card-header">
+            <div>
+              <p class="card-eyebrow">轮播图</p>
+              <span class="card-title">最新 Banner</span>
+            </div>
+            <el-button link type="primary" @click="goToItems">查看物品</el-button>
+          </div>
+        </template>
+        <el-carousel v-if="banners.length" height="240px" indicator-position="outside" type="card">
+          <el-carousel-item v-for="banner in banners" :key="banner.id">
+            <div class="banner-slide" :style="{ backgroundImage: banner.imageUrl ? `url(${banner.imageUrl})` : '' }">
+              <div class="banner-overlay">
+                <h3>{{ banner.title }}</h3>
+                <p class="banner-desc">{{ banner.description || '点击查看详情' }}</p>
+                <el-button v-if="banner.link" type="primary" size="small" @click="openLink(banner.link)">
+                  立即查看
+                </el-button>
+              </div>
+            </div>
+          </el-carousel-item>
+        </el-carousel>
+        <el-empty v-else :description="bannerHint" />
+      </el-card>
+
+      <el-card class="announcement-card" v-loading="announcementLoading">
+        <template #header>
+          <div class="card-header">
+            <div>
+              <p class="card-eyebrow">公告栏</p>
+              <span class="card-title">最新公告</span>
+            </div>
+            <el-button link type="primary" @click="goToItems">前往列表</el-button>
+          </div>
+        </template>
+        <el-timeline v-if="announcements.length">
+          <el-timeline-item
+            v-for="announcement in announcements"
+            :key="announcement.id"
+            type="primary"
+            :timestamp="formatCreatedAt(announcement.createdAt)"
+          >
+            <div class="announcement">
+              <h4>{{ announcement.title }}</h4>
+              <p>{{ announcement.content || '暂无内容' }}</p>
+            </div>
+          </el-timeline-item>
+        </el-timeline>
+        <el-empty v-else :description="announcementHint" />
+      </el-card>
+    </section>
+
     <section class="feature-grid">
       <el-card v-for="feature in featureCards" :key="feature.title" shadow="hover" class="feature">
         <div class="feature__icon">{{ feature.icon }}</div>
@@ -91,8 +145,13 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
+import client from '../api/client';
+import { extractErrorMessage } from '../utils/error';
+import { formatDateTime } from '../utils/format';
+import { normalizeAnnouncement, normalizeBanner } from '../utils/normalizers';
+import type { Announcement, Banner } from '../types';
 
 interface FeatureCard {
   title: string;
@@ -103,6 +162,17 @@ interface FeatureCard {
 }
 
 const router = useRouter();
+const banners = ref<Banner[]>([]);
+const bannerHint = ref('正在加载 Banner...');
+const bannersLoading = ref(false);
+const announcements = ref<Announcement[]>([]);
+const announcementHint = ref('正在加载公告...');
+const announcementLoading = ref(false);
+
+onMounted(() => {
+  loadBanners();
+  loadAnnouncements();
+});
 
 const goToItems = () => router.push('/items');
 const goToCreate = () => {
@@ -138,6 +208,46 @@ const featureCards = computed<FeatureCard[]>(() => [
     onClick: goToLogin
   }
 ]);
+
+async function loadBanners() {
+  bannersLoading.value = true;
+  try {
+    const { data } = await client.get<Banner[]>('/banners');
+    if (Array.isArray(data)) {
+      banners.value = data.map(normalizeBanner).filter((banner) => banner.imageUrl);
+      bannerHint.value = banners.value.length ? '' : '暂无轮播图';
+    }
+  } catch (error) {
+    const message = extractErrorMessage(error);
+    bannerHint.value = message ? `Banner 加载失败：${message}` : 'Banner 加载失败';
+  } finally {
+    bannersLoading.value = false;
+  }
+}
+
+async function loadAnnouncements() {
+  announcementLoading.value = true;
+  try {
+    const { data } = await client.get<Announcement[]>('/announcements');
+    if (Array.isArray(data)) {
+      announcements.value = data.map(normalizeAnnouncement);
+      announcementHint.value = announcements.value.length ? '' : '暂无公告';
+    }
+  } catch (error) {
+    const message = extractErrorMessage(error);
+    announcementHint.value = message ? `公告加载失败：${message}` : '公告加载失败';
+  } finally {
+    announcementLoading.value = false;
+  }
+}
+
+function openLink(link: string) {
+  window.open(link, '_blank');
+}
+
+function formatCreatedAt(value?: string) {
+  return formatDateTime(value);
+}
 </script>
 
 <style scoped>
@@ -272,6 +382,76 @@ const featureCards = computed<FeatureCard[]>(() => [
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
+}
+
+.updates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+}
+
+.card-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.banner-card,
+.announcement-card {
+  border-radius: 14px;
+  box-shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.35);
+}
+
+.banner-slide {
+  position: relative;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+  box-shadow: inset 0 -40px 80px rgba(0, 0, 0, 0.35);
+}
+
+.banner-overlay {
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  width: 100%;
+}
+
+.banner-overlay h3 {
+  margin: 0 0 4px;
+}
+
+.banner-desc {
+  margin: 0 0 8px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.announcement h4 {
+  margin: 0 0 4px;
+}
+
+.announcement p {
+  margin: 0;
+  color: var(--el-text-color-secondary);
 }
 
 .feature {

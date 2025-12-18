@@ -35,3 +35,12 @@ export interface Announcement {
   content?: string;
   createdAt?: string;
 }
+
+export interface Banner {
+  id: number | string;
+  title: string;
+  imageUrl: string;
+  link?: string;
+  description?: string;
+  createdAt?: string;
+}
