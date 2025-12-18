@@ -24,15 +24,17 @@ export const useAuthStore = defineStore('auth', {
     async login(username: string, password: string) {
       const { data } = await client.post<LoginResponse>('/auth/login', { username, password });
       const userId = data?.userId;
-      const usernameFromResponse = data?.username;
+      const usernameFromResponse = data?.username ?? '';
       const role = normalizeRole(data?.role ?? '');
 
       if (!userId || !role) {
         throw new Error('登录响应异常：缺少用户信息');
       }
 
-      this.user = { userId, username: usernameFromResponse || username, role };
-      cacheUser(this.user);
+      const normalizedUser = { userId, username: usernameFromResponse || username, role };
+
+      this.user = normalizedUser;
+      cacheUser(normalizedUser);
       this.isRestoring = false;
     },
     logout() {

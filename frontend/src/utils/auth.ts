@@ -12,12 +12,14 @@ export function normalizeRole(role?: string | null): Role {
 
 export function cacheUser(user: AuthUser | null): void {
   if (user) {
+    const username = user.username?.toString?.().trim?.() || '';
+    const role = normalizeRole(user.role);
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
         userId: user.userId,
-        username: user.username,
-        role: normalizeRole(user.role)
+        username,
+        role
       })
     );
     return;
@@ -34,7 +36,7 @@ export function restoreCachedUser(): AuthUser | null {
     if (!parsed?.userId || !role) return null;
     return {
       userId: parsed.userId,
-      username: parsed.username,
+      username: parsed.username ?? '',
       role: normalizeRole(String(role))
     };
   } catch (error) {

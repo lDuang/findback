@@ -18,21 +18,23 @@
         <el-table-column prop="title" label="物品名称" />
         <el-table-column prop="status" label="状态" :formatter="formatStatus" />
         <el-table-column prop="location" label="地点" />
+        <el-table-column prop="createdAt" label="创建时间" :formatter="formatCreatedAt" width="180" />
       </el-table>
       <el-divider />
       <h4>新增物品</h4>
-      <item-form @created="(item) => myItems.unshift(item)" />
+      <item-form @created="(item) => myItems.unshift(normalizeItem(item))" />
     </el-card>
 
     <el-card style="margin-top: 16px">
       <template #header>
         <span>我的认领</span>
       </template>
-      <claim-form @submitted="(claim) => myClaims.unshift(claim)" />
+      <claim-form @submitted="(claim) => myClaims.unshift(normalizeClaim(claim))" />
       <el-table :data="myClaims" :empty-text="claimEmptyText" style="width: 100%; margin-top: 16px">
         <el-table-column prop="itemId" label="物品 ID" />
         <el-table-column prop="status" label="状态" :formatter="formatStatus" />
         <el-table-column prop="reason" label="认领理由" />
+        <el-table-column prop="createdAt" label="提交时间" :formatter="formatCreatedAt" width="180" />
       </el-table>
     </el-card>
   </div>
@@ -46,6 +48,8 @@ import ItemForm from '../components/ItemForm.vue';
 import ClaimForm from '../components/ClaimForm.vue';
 import { statusLabel } from '../utils/status';
 import { extractErrorMessage } from '../utils/error';
+import { formatDateTime } from '../utils/format';
+import { normalizeClaim, normalizeItem } from '../utils/normalizers';
 import type { Claim, LostItem } from '../types';
 
 const auth = useAuthStore();
@@ -64,7 +68,7 @@ onMounted(async () => {
   try {
     const { data } = await client.get<LostItem[]>('/items', { params: { userId: auth.user.userId } });
     if (Array.isArray(data)) {
-      myItems.value = data;
+      myItems.value = data.map(normalizeItem);
       itemEmptyText.value = data.length ? '' : '暂无物品记录';
     } else {
       itemEmptyText.value = '暂无物品记录';
@@ -78,7 +82,7 @@ onMounted(async () => {
   try {
     const { data } = await client.get<Claim[]>('/claims', { params: { userId: auth.user.userId } });
     if (Array.isArray(data)) {
-      myClaims.value = data;
+      myClaims.value = data.map(normalizeClaim);
       claimEmptyText.value = data.length ? '' : '暂无认领记录';
     } else {
       claimEmptyText.value = '暂无认领记录';
@@ -92,6 +96,10 @@ onMounted(async () => {
 
 function formatStatus(_row: Claim | LostItem, _column: unknown, cellValue: string) {
   return statusLabel(cellValue);
+}
+
+function formatCreatedAt(_row: Claim | LostItem, _column: unknown, cellValue?: string) {
+  return formatDateTime(cellValue);
 }
 </script>
 

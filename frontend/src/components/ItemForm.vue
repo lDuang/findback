@@ -45,6 +45,7 @@ import { ElMessage, type UploadRequestOptions } from 'element-plus';
 import client from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import { buildDisplayError } from '../utils/error';
+import { normalizeItem } from '../utils/normalizers';
 import type { LostItem } from '../types';
 
 const props = defineProps<{ item?: LostItem | null }>();
@@ -77,15 +78,19 @@ async function submit() {
   }
   loading.value = true;
   try {
-    const payload = { ...form };
+    const payload = { ...form, userId: auth.user.userId, username: auth.user.username };
     const { data } = isEditing.value
       ? await client.put<LostItem>(`/items/${props.item?.id}`, payload)
       : await client.post<LostItem>('/items', payload);
-    const savedItem: LostItem = data || {
-      ...payload,
-      id: props.item?.id || Date.now().toString(),
-      userId: auth.user?.userId ?? ''
-    };
+    const savedItem: LostItem = normalizeItem(
+      data || {
+        ...payload,
+        id: props.item?.id || Date.now().toString(),
+        userId: auth.user?.userId ?? '',
+        username: auth.user?.username ?? '',
+        createdAt: new Date().toISOString()
+      }
+    );
     ElMessage.success(isEditing.value ? '物品已更新' : '物品已创建');
     emit('created', savedItem);
     Object.assign(form, isEditing.value ? buildInitialForm(savedItem) : buildInitialForm());
@@ -99,12 +104,13 @@ async function submit() {
 }
 
 function buildInitialForm(item?: Partial<LostItem>) {
+  const normalized = item ? normalizeItem(item) : null;
   return {
-    title: item?.title || '',
-    description: item?.description || '',
-    status: item?.status || 'OPEN',
-    location: item?.location || '',
-    imageUrl: item?.imageUrl || ''
+    title: normalized?.title || '',
+    description: normalized?.description || '',
+    status: normalized?.status || 'OPEN',
+    location: normalized?.location || '',
+    imageUrl: normalized?.imageUrl || ''
   };
 }
 

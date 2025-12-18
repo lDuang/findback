@@ -7,6 +7,8 @@
           <el-tag :type="displayStatusType">{{ displayStatus }}</el-tag>
         </div>
       </template>
+      <p><strong>发布人：</strong> {{ displayOwner(displayItem) }}</p>
+      <p><strong>创建时间：</strong> {{ formatCreatedAt(displayItem.createdAt) }}</p>
       <p><strong>地点：</strong> {{ displayItem.location }}</p>
       <p><strong>描述：</strong> {{ displayItem.description }}</p>
       <div v-if="displayItem.imageUrl" class="image-row">
@@ -35,9 +37,13 @@
           v-for="claim in claims"
           :key="claim.id"
           :type="statusColor(claim.status)"
-          :timestamp="claimStatusLabel(claim.status)"
+          :timestamp="claimTimestamp(claim)"
         >
           <div class="claim-content">
+            <div class="claim-meta">
+              <el-tag size="small" :type="statusColor(claim.status)">{{ claimStatusLabel(claim.status) }}</el-tag>
+              <span class="claim-user">{{ displayOwner(claim) }}</span>
+            </div>
             <p>{{ claim.reason || '暂无详情' }}</p>
             <div v-if="claim.evidenceUrl" class="claim-proof">
               <el-image :src="claim.evidenceUrl" fit="cover" style="width: 120px; height: 120px" />
@@ -61,6 +67,8 @@ import { useAuthStore } from '../stores/auth';
 import { statusLabel, statusTagType } from '../utils/status';
 import { normalizeRole } from '../utils/auth';
 import { extractErrorMessage } from '../utils/error';
+import { formatDateTime, formatUserDisplay } from '../utils/format';
+import { normalizeClaim, normalizeItem } from '../utils/normalizers';
 import type { Claim, LostItem } from '../types';
 
 const route = useRoute();
@@ -91,7 +99,7 @@ onMounted(async () => {
   const id = route.params.id as string;
   try {
     const { data } = await client.get<LostItem>(`/items/${id}`);
-    item.value = data || null;
+    item.value = data ? normalizeItem(data) : null;
     if (!item.value) {
       loadHint.value = '未找到对应的物品详情。';
     } else {
@@ -112,8 +120,9 @@ onMounted(async () => {
   try {
     const { data } = await client.get<Claim[]>(`/items/${id}/claims`);
     if (Array.isArray(data)) {
+      const normalizedClaims = data.map(normalizeClaim);
       const shouldShowAll = isAdmin.value || isItemOwner.value;
-      claims.value = shouldShowAll ? data : filterMyClaims(data);
+      claims.value = shouldShowAll ? normalizedClaims : filterMyClaims(normalizedClaims);
       claimsHint.value = claims.value.length ? '' : '暂无认领记录';
     }
   } catch (error) {
@@ -125,8 +134,9 @@ onMounted(async () => {
 });
 
 function addClaim(claim: Claim) {
-  if (isMyClaim(claim)) {
-    claims.value.unshift(claim);
+  const normalized = normalizeClaim(claim);
+  if (isMyClaim(normalized)) {
+    claims.value.unshift(normalized);
   }
   ElMessage.success('认领已提交');
 }
@@ -163,6 +173,19 @@ const displayItem = computed(() => {
     description: item.value.description || '暂无描述'
   };
 });
+
+function displayOwner(row?: { username?: string; userId?: string | number }) {
+  return formatUserDisplay(row?.username, row?.userId as string | number);
+}
+
+function claimTimestamp(claim: Claim) {
+  const created = formatDateTime(claim.createdAt);
+  return created !== '—' ? created : claimStatusLabel(claim.status);
+}
+
+function formatCreatedAt(value?: string) {
+  return formatDateTime(value);
+}
 </script>
 
 <style scoped>
@@ -195,6 +218,15 @@ const displayItem = computed(() => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.claim-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.claim-user {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 .claim-proof {
   display: flex;

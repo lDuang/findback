@@ -35,6 +35,7 @@ import { ElMessage, type UploadRequestOptions } from 'element-plus';
 import client from '../api/client';
 import { useAuthStore } from '../stores/auth';
 import { buildDisplayError } from '../utils/error';
+import { normalizeClaim } from '../utils/normalizers';
 import type { Claim } from '../types';
 
 const props = defineProps<{ itemId?: string | number }>();
@@ -75,10 +76,19 @@ async function submit() {
 
   loading.value = true;
   try {
-    const payload = { itemId, reason: form.reason, evidenceUrl: form.evidenceUrl };
+    const payload = { itemId, reason: form.reason, evidenceUrl: form.evidenceUrl, userId: auth.user.userId };
     const { data } = await client.post<Claim>('/claims', payload);
     ElMessage.success('认领已提交');
-    emit('submitted', data || { ...payload, id: Date.now().toString(), status: 'PENDING', userId: auth.user.userId });
+    const normalized = normalizeClaim(
+      data || {
+        ...payload,
+        id: Date.now().toString(),
+        status: 'PENDING',
+        username: auth.user.username,
+        createdAt: new Date().toISOString()
+      }
+    );
+    emit('submitted', normalized);
     form.itemId = props.itemId || '';
     form.reason = '';
     form.evidenceUrl = '';

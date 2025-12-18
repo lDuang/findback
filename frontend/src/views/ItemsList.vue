@@ -35,7 +35,14 @@
           >
             <el-table-column prop="title" label="物品名称" :formatter="formatTitle" min-width="160" />
             <el-table-column prop="location" label="地点" :formatter="formatLocation" min-width="120" />
+            <el-table-column prop="username" label="发布人" :formatter="formatOwner" min-width="140" />
             <el-table-column prop="status" label="状态" :formatter="formatStatus" width="120" />
+            <el-table-column
+              prop="createdAt"
+              label="创建时间"
+              :formatter="formatCreatedAt"
+              width="180"
+            />
           </el-table>
         </el-card>
       </el-col>
@@ -72,6 +79,8 @@ import ItemForm from '../components/ItemForm.vue';
 import { statusLabel } from '../utils/status';
 import { normalizeRole } from '../utils/auth';
 import { extractErrorMessage } from '../utils/error';
+import { formatDateTime, formatUserDisplay } from '../utils/format';
+import { normalizeItem } from '../utils/normalizers';
 import { useAuthStore } from '../stores/auth';
 import type { LostItem } from '../types';
 
@@ -121,7 +130,7 @@ async function loadItems() {
       Object.keys(params).length ? { params } : undefined
     );
     if (Array.isArray(data)) {
-      items.value = data;
+      items.value = data.map(normalizeItem);
       if (!data.length) {
         loadHint.value = isAdmin.value ? '暂无物品，您可以创建或导入新的记录。' : '暂无物品，您可以先创建一条属于自己的记录。';
       } else {
@@ -144,7 +153,7 @@ const filteredItems = computed(() =>
   items.value.filter((item) => {
     const query = search.value.trim().toLowerCase();
     if (!query) return true;
-    return [item.title, item.description, item.location]
+    return [item.title, item.description, item.location, item.username, item.status]
       .map((field) => field?.toString?.().toLowerCase?.() || '')
       .some((field) => field.includes(query));
   })
@@ -165,7 +174,7 @@ function goDetail(row: LostItem) {
 }
 
 function addItem(newItem: LostItem) {
-  items.value.unshift(newItem);
+  items.value.unshift(normalizeItem(newItem));
   ElMessage.success('物品已添加');
 }
 
@@ -179,6 +188,14 @@ function formatLocation(_row: LostItem, _column: unknown, cellValue: string) {
 
 function formatTitle(_row: LostItem, _column: unknown, cellValue: string) {
   return cellValue || '未命名物品';
+}
+
+function formatOwner(row: LostItem) {
+  return formatUserDisplay(row.username, row.userId);
+}
+
+function formatCreatedAt(_row: LostItem, _column: unknown, cellValue: string) {
+  return formatDateTime(cellValue);
 }
 </script>
 
