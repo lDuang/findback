@@ -1,5 +1,9 @@
 <template>
-  <el-container class="app-shell">
+  <div v-if="isRestoring" class="restore-screen">
+    <el-skeleton :rows="2" animated class="restore-skeleton" />
+    <p class="restore-text">正在恢复会话...</p>
+  </div>
+  <el-container v-else class="app-shell">
     <el-header class="app-header">
       <div class="brand">失物招领系统</div>
       <el-menu mode="horizontal" :default-active="activeRoute" router class="app-menu">
@@ -10,7 +14,7 @@
         <el-menu-item v-if="isAdmin" index="/admin">管理员面板</el-menu-item>
       </el-menu>
       <div class="user-panel">
-        <template v-if="auth.user">
+        <template v-if="user">
           <div class="user-meta">
             <p class="user-name">{{ displayName }}</p>
             <p class="user-role">{{ roleLabel }}</p>
@@ -31,6 +35,7 @@
 
 <script lang="ts" setup>
 import { computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth';
 import { normalizeRole } from './utils/auth';
@@ -38,15 +43,11 @@ import { normalizeRole } from './utils/auth';
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
+const { user, isLoggedIn, isRestoring } = storeToRefs(auth);
 
 const activeRoute = computed(() => route.path);
-const isLoggedIn = computed(() => !!auth.user);
-const normalizedRole = computed(() => normalizeRole(auth.user?.role));
-const displayName = computed(() => {
-  if (auth.user?.username) return auth.user.username;
-  if (auth.user) return '已登录用户';
-  return '';
-});
+const normalizedRole = computed(() => normalizeRole(user.value?.role));
+const displayName = computed(() => user.value?.username || `ID：${user.value?.userId ?? ''}`);
 const isAdmin = computed(() => normalizedRole.value === 'ADMIN');
 const roleLabel = computed(() => {
   if (normalizedRole.value === 'ADMIN') return '管理员';
@@ -64,6 +65,26 @@ function logout() {
 .app-shell {
   min-height: 100vh;
   background: #f8fafc;
+}
+
+.restore-screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: #f8fafc;
+}
+
+.restore-skeleton {
+  width: 360px;
+  max-width: 90vw;
+}
+
+.restore-text {
+  margin: 0;
+  color: var(--el-text-color-secondary);
 }
 
 .app-header {
