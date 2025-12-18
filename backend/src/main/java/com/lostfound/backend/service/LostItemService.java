@@ -1,6 +1,7 @@
 package com.lostfound.backend.service;
 
 import com.lostfound.backend.entity.LostItem;
+import com.lostfound.backend.exception.NotFoundException;
 import com.lostfound.backend.model.UserContext;
 import com.lostfound.backend.repository.ClaimRepository;
 import com.lostfound.backend.repository.LostItemRepository;
@@ -57,12 +58,12 @@ public class LostItemService {
 
     public LostItem findById(Long id) {
         return lostItemRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+                .orElseThrow(() -> new NotFoundException("Item not found"));
     }
 
     public LostItem updateItem(Long itemId, LostItem updated, UserContext context) {
         LostItem existing = lostItemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+                .orElseThrow(() -> new NotFoundException("Item not found"));
         authService.ensureOwnershipOrAdmin(context, existing.getUserId());
         if (StringUtils.hasText(updated.getTitle())) {
             existing.setTitle(updated.getTitle());
@@ -81,7 +82,7 @@ public class LostItemService {
             throw new IllegalArgumentException("Status is required");
         }
         LostItem existing = lostItemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+                .orElseThrow(() -> new NotFoundException("Item not found"));
         authService.ensureOwnershipOrAdmin(context, existing.getUserId());
         existing.setStatus(status);
         return lostItemRepository.save(existing);
@@ -89,7 +90,7 @@ public class LostItemService {
 
     public void deleteItem(Long itemId, UserContext context) {
         LostItem existing = lostItemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Item not found"));
+                .orElseThrow(() -> new NotFoundException("Item not found"));
         authService.ensureOwnershipOrAdmin(context, existing.getUserId());
         claimRepository.deleteByItemId(itemId);
         lostItemRepository.delete(existing);

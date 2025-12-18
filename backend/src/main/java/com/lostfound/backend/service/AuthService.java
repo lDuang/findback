@@ -1,6 +1,7 @@
 package com.lostfound.backend.service;
 
 import com.lostfound.backend.entity.User;
+import com.lostfound.backend.exception.NotFoundException;
 import com.lostfound.backend.model.UserContext;
 import com.lostfound.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -66,7 +67,7 @@ public class AuthService {
 
     public User ensureUserExists(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new NotFoundException("User not found"));
     }
 
     private String normalizeRole(String role) {
