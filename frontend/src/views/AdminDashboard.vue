@@ -73,7 +73,7 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { onMounted, reactive, ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import client from '../api/client';
@@ -81,16 +81,22 @@ import ItemForm from '../components/ItemForm.vue';
 import AnnouncementManager from '../components/AnnouncementManager.vue';
 import { buildDisplayError } from '../utils/error';
 import { statusLabel } from '../utils/status';
+import type { Claim, LostItem, AuthUser } from '../types';
 
-const activeTab = ref('users');
-const newUser = reactive({
-  username: '',
-  password: '',
-  role: 'USER'
-});
-const users = ref([]);
-const items = ref([]);
-const claims = ref([]);
+type AdminTab = 'users' | 'items' | 'claims' | 'announcements';
+type AdminUser = AuthUser & { id: number | string; password?: string };
+
+const activeTab = ref<AdminTab>('users');
+const newUser = reactive<Required<Pick<AdminUser, 'username' | 'password' | 'role'>> & { id?: number | string }>(
+  {
+    username: '',
+    password: '',
+    role: 'USER'
+  }
+);
+const users = ref<AdminUser[]>([]);
+const items = ref<LostItem[]>([]);
+const claims = ref<Claim[]>([]);
 
 onMounted(async () => {
   await Promise.all([loadUsers(), loadItems(), loadClaims()]);
@@ -102,7 +108,7 @@ async function addUser() {
     return;
   }
   try {
-    const { data } = await client.post('/admin/users', newUser);
+    const { data } = await client.post<AdminUser>('/admin/users', newUser);
     users.value.unshift(data);
     newUser.username = '';
     newUser.password = '';
@@ -115,7 +121,7 @@ async function addUser() {
   }
 }
 
-async function removeUser(user) {
+async function removeUser(user: AdminUser) {
   try {
     await client.delete(`/admin/users/${user.id}`);
     users.value = users.value.filter((u) => u.id !== user.id);
@@ -127,7 +133,7 @@ async function removeUser(user) {
   }
 }
 
-async function updateClaim(claim, status) {
+async function updateClaim(claim: Claim, status: string) {
   if (!claim?.id) {
     ElMessage.error('缺少认领 ID');
     return;
@@ -135,7 +141,7 @@ async function updateClaim(claim, status) {
   const previousStatus = claim.status;
   claim.status = status.toUpperCase();
   try {
-    const { data } = await client.put(`/claims/${claim.id}/status`, { status: claim.status });
+    const { data } = await client.put<Claim>(`/claims/${claim.id}/status`, { status: claim.status });
     claim.status = data?.status || claim.status;
     ElMessage.success(`认领状态：${formatStatus(claim, null, claim.status)}`);
   } catch (error) {
@@ -148,7 +154,7 @@ async function updateClaim(claim, status) {
 
 async function loadUsers() {
   try {
-    const { data } = await client.get('/admin/users');
+    const { data } = await client.get<AdminUser[]>('/admin/users');
     if (Array.isArray(data)) users.value = data;
   } catch (error) {
     console.error('Failed to load users', error);
@@ -159,7 +165,7 @@ async function loadUsers() {
 
 async function loadItems() {
   try {
-    const { data } = await client.get('/items');
+    const { data } = await client.get<LostItem[]>('/items');
     if (Array.isArray(data)) items.value = data;
   } catch (error) {
     console.warn('Using empty items list in admin', error);
@@ -170,7 +176,7 @@ async function loadItems() {
 
 async function loadClaims() {
   try {
-    const { data } = await client.get('/claims');
+    const { data } = await client.get<Claim[]>('/claims');
     if (Array.isArray(data)) claims.value = data;
   } catch (error) {
     console.warn('Using empty claims list in admin', error);
@@ -179,12 +185,12 @@ async function loadClaims() {
   }
 }
 
-function formatStatus(row, column, cellValue) {
+function formatStatus(_row: Claim | LostItem, _column: unknown, cellValue: string) {
   return statusLabel(cellValue);
 }
 
-function formatRole(row, column, cellValue) {
-  const role = cellValue?.toUpperCase?.();
+function formatRole(_row: AdminUser, _column: unknown, cellValue: string) {
+  const role = cellValue?.toString?.().toUpperCase?.();
   if (role === 'ADMIN') return '管理员';
   if (role === 'USER') return '普通用户';
   return cellValue || '未知角色';
@@ -195,6 +201,10 @@ function formatRole(row, column, cellValue) {
 .page {
   max-width: 1100px;
   margin: 0 auto;
+  padding: 24px 16px 48px;
+  background: radial-gradient(circle at 18% 20%, rgba(79, 70, 229, 0.05), transparent 32%),
+    radial-gradient(circle at 82% 16%, rgba(16, 185, 129, 0.05), transparent 30%),
+    #f9fafb;
 }
 
 .admin-alert {

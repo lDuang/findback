@@ -51,7 +51,7 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { computed, onMounted, ref } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -61,10 +61,11 @@ import { useAuthStore } from '../stores/auth';
 import { statusLabel, statusTagType } from '../utils/status';
 import { normalizeRole } from '../utils/auth';
 import { extractErrorMessage } from '../utils/error';
+import type { Claim, LostItem } from '../types';
 
 const route = useRoute();
-const item = ref(null);
-const claims = ref([]);
+const item = ref<LostItem | null>(null);
+const claims = ref<Claim[]>([]);
 const auth = useAuthStore();
 const loadHint = ref('正在加载物品详情，请稍候');
 const claimsHint = ref('暂无认领记录');
@@ -87,9 +88,9 @@ const claimAlertDescription = computed(() => {
 });
 
 onMounted(async () => {
-  const id = route.params.id;
+  const id = route.params.id as string;
   try {
-    const { data } = await client.get(`/items/${id}`);
+    const { data } = await client.get<LostItem>(`/items/${id}`);
     item.value = data || null;
     if (!item.value) {
       loadHint.value = '未找到对应的物品详情。';
@@ -109,7 +110,7 @@ onMounted(async () => {
   }
 
   try {
-    const { data } = await client.get(`/items/${id}/claims`);
+    const { data } = await client.get<Claim[]>(`/items/${id}/claims`);
     if (Array.isArray(data)) {
       const shouldShowAll = isAdmin.value || isItemOwner.value;
       claims.value = shouldShowAll ? data : filterMyClaims(data);
@@ -123,28 +124,30 @@ onMounted(async () => {
   }
 });
 
-function addClaim(claim) {
+function addClaim(claim: Claim) {
   if (isMyClaim(claim)) {
     claims.value.unshift(claim);
   }
   ElMessage.success('认领已提交');
 }
 
-function filterMyClaims(list) {
-  if (!auth.user?.userId) return [];
-  return list.filter((claim) => `${claim.userId}` === `${auth.user.userId}`);
+function filterMyClaims(list: Claim[]) {
+  const currentUserId = auth.user?.userId;
+  if (!currentUserId) return [];
+  return list.filter((claim) => `${claim.userId}` === `${currentUserId}`);
 }
 
-function isMyClaim(claim) {
-  if (!claim || !auth.user?.userId) return false;
-  return `${claim.userId}` === `${auth.user.userId}`;
+function isMyClaim(claim?: Claim | null) {
+  const currentUserId = auth.user?.userId;
+  if (!claim || !currentUserId) return false;
+  return `${claim.userId}` === `${currentUserId}`;
 }
 
-function statusColor(status) {
+function statusColor(status?: string) {
   return statusTagType(status);
 }
 
-function claimStatusLabel(status) {
+function claimStatusLabel(status?: string) {
   return statusLabel(status);
 }
 
@@ -166,6 +169,13 @@ const displayItem = computed(() => {
 .page {
   max-width: 960px;
   margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: radial-gradient(circle at 18% 18%, rgba(79, 70, 229, 0.05), transparent 32%),
+    radial-gradient(circle at 80% 12%, rgba(16, 185, 129, 0.05), transparent 30%),
+    #f9fafb;
 }
 
 .card-header {

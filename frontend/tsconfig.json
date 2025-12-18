@@ -5,6 +5,7 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "skipLibCheck": true,
     "jsx": "preserve",
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -21,7 +22,8 @@
     "src/**/*.d.ts",
     "src/**/*.tsx",
     "src/**/*.vue",
-    "src/**/*.js"
+    "src/**/*.js",
+    "vite.config.ts"
   ],
   "references": []
 }

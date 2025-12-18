@@ -9,24 +9,45 @@
     />
     <el-row :gutter="20">
       <el-col :span="16">
-        <el-card>
+        <el-card class="panel" v-loading="loading">
           <template #header>
             <div class="card-header">
-              <span>物品列表</span>
-              <el-input v-model="search" placeholder="搜索物品名称、地点或描述" size="small" clearable style="width: 220px" />
+              <div>
+                <p class="card-eyebrow">实时物品</p>
+                <span class="card-title">物品列表</span>
+              </div>
+              <el-input
+                v-model="search"
+                placeholder="搜索物品名称、地点或描述"
+                size="small"
+                clearable
+                style="width: 220px"
+              />
             </div>
           </template>
-          <el-table :data="filteredItems" :empty-text="tableEmptyText" style="width: 100%" @row-click="goDetail">
-            <el-table-column prop="title" label="物品名称" :formatter="formatTitle" />
-            <el-table-column prop="location" label="地点" :formatter="formatLocation" />
-            <el-table-column prop="status" label="状态" :formatter="formatStatus" />
+          <el-table
+            :data="filteredItems"
+            :empty-text="tableEmptyText"
+            style="width: 100%"
+            @row-click="goDetail"
+            highlight-current-row
+            border
+          >
+            <el-table-column prop="title" label="物品名称" :formatter="formatTitle" min-width="160" />
+            <el-table-column prop="location" label="地点" :formatter="formatLocation" min-width="120" />
+            <el-table-column prop="status" label="状态" :formatter="formatStatus" width="120" />
           </el-table>
         </el-card>
       </el-col>
       <el-col :span="8">
-        <el-card>
+        <el-card class="panel">
           <template #header>
-            <span>创建物品</span>
+            <div class="card-header">
+              <div>
+                <p class="card-eyebrow">快速发布</p>
+                <span class="card-title">创建物品</span>
+              </div>
+            </div>
           </template>
           <item-form v-if="canCreate" @created="addItem" />
           <el-alert
@@ -42,7 +63,7 @@
   </div>
 </template>
 
-<script setup>
+<script lang="ts" setup>
 import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
@@ -52,9 +73,10 @@ import { statusLabel } from '../utils/status';
 import { normalizeRole } from '../utils/auth';
 import { extractErrorMessage } from '../utils/error';
 import { useAuthStore } from '../stores/auth';
+import type { LostItem } from '../types';
 
 const router = useRouter();
-const items = ref([]);
+const items = ref<LostItem[]>([]);
 const search = ref('');
 const loadHint = ref('正在加载物品，请稍候');
 const loading = ref(false);
@@ -89,12 +111,15 @@ watch(
 
 async function loadItems() {
   loading.value = true;
-  const params = {};
+  const params: Record<string, unknown> = {};
   if (isUser.value) {
-    params.userId = auth.user.userId;
+    params.userId = auth.user?.userId;
   }
   try {
-    const { data } = await client.get('/items', Object.keys(params).length ? { params } : undefined);
+    const { data } = await client.get<LostItem[]>(
+      '/items',
+      Object.keys(params).length ? { params } : undefined
+    );
     if (Array.isArray(data)) {
       items.value = data;
       if (!data.length) {
@@ -135,24 +160,24 @@ const tableEmptyText = computed(() => {
   return loading.value ? '正在加载物品，请稍候' : '暂无物品';
 });
 
-function goDetail(row) {
+function goDetail(row: LostItem) {
   router.push({ name: 'item-detail', params: { id: row.id } });
 }
 
-function addItem(newItem) {
+function addItem(newItem: LostItem) {
   items.value.unshift(newItem);
   ElMessage.success('物品已添加');
 }
 
-function formatStatus(row, column, cellValue) {
+function formatStatus(_row: LostItem, _column: unknown, cellValue: string) {
   return statusLabel(cellValue);
 }
 
-function formatLocation(row, column, cellValue) {
+function formatLocation(_row: LostItem, _column: unknown, cellValue: string) {
   return cellValue || '未提供地点';
 }
 
-function formatTitle(row, column, cellValue) {
+function formatTitle(_row: LostItem, _column: unknown, cellValue: string) {
   return cellValue || '未命名物品';
 }
 </script>
@@ -161,6 +186,13 @@ function formatTitle(row, column, cellValue) {
 .page {
   max-width: 1200px;
   margin: 0 auto;
+  padding: 24px 16px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: radial-gradient(circle at 18% 20%, rgba(79, 70, 229, 0.05), transparent 32%),
+    radial-gradient(circle at 82% 16%, rgba(16, 185, 129, 0.05), transparent 30%),
+    #f9fafb;
 }
 
 .role-alert {
@@ -171,5 +203,30 @@ function formatTitle(row, column, cellValue) {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+}
+
+.card-eyebrow {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--el-text-color-secondary);
+}
+
+.card-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.panel {
+  border-radius: 14px;
+  box-shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.35);
+}
+
+@media (max-width: 960px) {
+  .page {
+    padding: 16px 12px 36px;
+  }
 }
 </style>
