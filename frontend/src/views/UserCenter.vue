@@ -11,7 +11,7 @@
       <template #header>
         <div class="card-header">
           <span>我的物品</span>
-          <el-tag v-if="auth.user" type="success">{{ auth.user.userId }}</el-tag>
+          <el-tag v-if="auth.user" type="success">{{ displayUsername }}</el-tag>
         </div>
       </template>
       <el-table :data="myItems" :empty-text="itemEmptyText" style="width: 100%">
@@ -39,7 +39,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '../stores/auth';
 import client from '../api/client';
 import ItemForm from '../components/ItemForm.vue';
@@ -53,6 +53,7 @@ const myItems = ref<LostItem[]>([]);
 const myClaims = ref<Claim[]>([]);
 const itemEmptyText = ref('请登录后查看我的物品。');
 const claimEmptyText = ref('请登录后查看我的认领。');
+const displayUsername = computed(() => auth.user?.username || '已登录用户');
 
 onMounted(async () => {
   if (!auth.user?.userId) return;
