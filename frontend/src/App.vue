@@ -5,8 +5,8 @@
       <el-menu mode="horizontal" :default-active="activeRoute" router class="app-menu">
         <el-menu-item index="/">首页</el-menu-item>
         <el-menu-item index="/items">物品列表</el-menu-item>
-        <el-menu-item index="/login">登录</el-menu-item>
-        <el-menu-item index="/user" v-if="auth.user">用户中心</el-menu-item>
+        <el-menu-item index="/login" v-if="!isLoggedIn">登录</el-menu-item>
+        <el-menu-item index="/user" v-if="isLoggedIn">用户中心</el-menu-item>
         <el-menu-item index="/admin" v-if="isAdmin">管理员面板</el-menu-item>
       </el-menu>
       <div class="user-panel">
@@ -37,6 +37,7 @@ const router = useRouter();
 const auth = useAuthStore();
 
 const activeRoute = computed(() => route.path);
+const isLoggedIn = computed(() => !!auth.user);
 const normalizedRole = computed(() => normalizeRole(auth.user?.role));
 const isAdmin = computed(() => normalizedRole.value === 'ADMIN');
 const roleLabel = computed(() => {
