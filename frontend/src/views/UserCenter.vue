@@ -14,28 +14,68 @@
           <el-tag v-if="auth.user" type="success">{{ displayUsername }}</el-tag>
         </div>
       </template>
-      <el-table :data="myItems" :empty-text="itemEmptyText" style="width: 100%">
-        <el-table-column prop="title" label="物品名称" />
-        <el-table-column prop="status" label="状态" :formatter="formatStatus" />
-        <el-table-column prop="location" label="地点" />
-        <el-table-column prop="createdAt" label="创建时间" :formatter="formatCreatedAt" width="180" />
+      <el-table
+        :data="paginatedItems"
+        :empty-text="itemEmptyText"
+        style="width: 100%"
+        :default-sort="{ prop: 'createdAt', order: 'descending' }"
+      >
+        <el-table-column prop="title" label="物品名称" sortable />
+        <el-table-column prop="status" label="状态" sortable>
+          <template #default="scope">
+            <el-tag :type="statusTagType(scope.row.status)" disable-transitions>{{ formatStatus(scope.row, null, scope.row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="location" label="地点" sortable />
+        <el-table-column prop="createdAt" label="创建时间" :formatter="formatCreatedAt" width="180" sortable />
       </el-table>
+      <div class="table-footer">
+        <el-pagination
+          layout="prev, pager, next"
+          :page-size="pageSize"
+          :current-page="itemPage"
+          :total="myItems.length"
+          background
+          small
+          @current-change="(page) => (itemPage = page)"
+        />
+      </div>
       <el-divider />
       <h4>新增物品</h4>
-      <item-form @created="(item) => myItems.unshift(normalizeItem(item))" />
+      <item-form @created="onItemCreated" />
     </el-card>
 
     <el-card style="margin-top: 16px">
       <template #header>
         <span>我的认领</span>
       </template>
-      <claim-form @submitted="(claim) => myClaims.unshift(normalizeClaim(claim))" />
-      <el-table :data="myClaims" :empty-text="claimEmptyText" style="width: 100%; margin-top: 16px">
-        <el-table-column prop="itemId" label="物品 ID" />
-        <el-table-column prop="status" label="状态" :formatter="formatStatus" />
+      <claim-form @submitted="onClaimSubmitted" />
+      <el-table
+        :data="paginatedClaims"
+        :empty-text="claimEmptyText"
+        style="width: 100%; margin-top: 16px"
+        :default-sort="{ prop: 'createdAt', order: 'descending' }"
+      >
+        <el-table-column prop="itemId" label="物品 ID" sortable />
+        <el-table-column prop="status" label="状态" sortable>
+          <template #default="scope">
+            <el-tag :type="statusTagType(scope.row.status)" disable-transitions>{{ formatStatus(scope.row, null, scope.row.status) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="reason" label="认领理由" />
-        <el-table-column prop="createdAt" label="提交时间" :formatter="formatCreatedAt" width="180" />
+        <el-table-column prop="createdAt" label="提交时间" :formatter="formatCreatedAt" width="180" sortable />
       </el-table>
+      <div class="table-footer">
+        <el-pagination
+          layout="prev, pager, next"
+          :page-size="pageSize"
+          :current-page="claimPage"
+          :total="myClaims.length"
+          background
+          small
+          @current-change="(page) => (claimPage = page)"
+        />
+      </div>
     </el-card>
   </div>
 </template>
@@ -46,7 +86,7 @@ import { useAuthStore } from '../stores/auth';
 import client from '../api/client';
 import ItemForm from '../components/ItemForm.vue';
 import ClaimForm from '../components/ClaimForm.vue';
-import { statusLabel } from '../utils/status';
+import { statusLabel, statusTagType } from '../utils/status';
 import { extractErrorMessage } from '../utils/error';
 import { formatDateTime } from '../utils/format';
 import { normalizeClaim, normalizeItem } from '../utils/normalizers';
@@ -58,6 +98,9 @@ const myClaims = ref<Claim[]>([]);
 const itemEmptyText = ref('请登录后查看我的物品。');
 const claimEmptyText = ref('请登录后查看我的认领。');
 const displayUsername = computed(() => auth.user?.username || '已登录用户');
+const pageSize = 5;
+const itemPage = ref(1);
+const claimPage = ref(1);
 
 onMounted(async () => {
   if (!auth.user?.userId) return;
@@ -70,6 +113,7 @@ onMounted(async () => {
     if (Array.isArray(data)) {
       myItems.value = data.map(normalizeItem);
       itemEmptyText.value = data.length ? '' : '暂无物品记录';
+      itemPage.value = 1;
     } else {
       itemEmptyText.value = '暂无物品记录';
     }
@@ -84,6 +128,7 @@ onMounted(async () => {
     if (Array.isArray(data)) {
       myClaims.value = data.map(normalizeClaim);
       claimEmptyText.value = data.length ? '' : '暂无认领记录';
+      claimPage.value = 1;
     } else {
       claimEmptyText.value = '暂无认领记录';
     }
@@ -101,6 +146,28 @@ function formatStatus(_row: Claim | LostItem, _column: unknown, cellValue: strin
 function formatCreatedAt(_row: Claim | LostItem, _column: unknown, cellValue?: string) {
   return formatDateTime(cellValue);
 }
+
+function onItemCreated(item: LostItem) {
+  myItems.value.unshift(normalizeItem(item));
+  itemEmptyText.value = '';
+  itemPage.value = 1;
+}
+
+function onClaimSubmitted(claim: Claim) {
+  myClaims.value.unshift(normalizeClaim(claim));
+  claimEmptyText.value = '';
+  claimPage.value = 1;
+}
+
+const paginatedItems = computed(() => {
+  const start = (itemPage.value - 1) * pageSize;
+  return myItems.value.slice(start, start + pageSize);
+});
+
+const paginatedClaims = computed(() => {
+  const start = (claimPage.value - 1) * pageSize;
+  return myClaims.value.slice(start, start + pageSize);
+});
 </script>
 
 <style scoped>
@@ -124,5 +191,11 @@ function formatCreatedAt(_row: Claim | LostItem, _column: unknown, cellValue?: s
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
 }
 </style>

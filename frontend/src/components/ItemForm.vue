@@ -17,21 +17,7 @@
       <el-input v-model="form.location" placeholder="请输入发现地点" />
     </el-form-item>
     <el-form-item label="物品图片">
-      <div class="upload-wrapper">
-        <el-upload
-          class="upload-block"
-          :http-request="handleUpload"
-          :show-file-list="false"
-          accept="image/*"
-        >
-          <el-button :loading="uploading">上传图片</el-button>
-        </el-upload>
-        <div v-if="form.imageUrl" class="preview">
-          <el-image :src="form.imageUrl" fit="cover" style="width: 120px; height: 120px" />
-          <span class="preview-text">已上传</span>
-        </div>
-        <div v-else class="preview placeholder">暂无图片</div>
-      </div>
+      <upload-card v-model="form.imageUrl" tip="支持 jpg、png 等常见图片格式" />
     </el-form-item>
     <el-form-item>
       <el-button type="primary" :loading="loading" @click="submit">{{ submitLabel }}</el-button>
@@ -41,8 +27,9 @@
 
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from 'vue';
-import { ElMessage, type UploadRequestOptions } from 'element-plus';
+import { ElMessage } from 'element-plus';
 import client from '../api/client';
+import UploadCard from './UploadCard.vue';
 import { useAuthStore } from '../stores/auth';
 import { buildDisplayError } from '../utils/error';
 import { normalizeItem } from '../utils/normalizers';
@@ -52,7 +39,6 @@ const props = defineProps<{ item?: LostItem | null }>();
 const emit = defineEmits<{ (event: 'created', item: LostItem): void }>();
 const auth = useAuthStore();
 const loading = ref(false);
-const uploading = ref(false);
 const form = reactive(buildInitialForm());
 
 const isEditing = computed(() => !!props.item?.id);
@@ -114,50 +100,6 @@ function buildInitialForm(item?: Partial<LostItem>) {
   };
 }
 
-async function handleUpload(options: UploadRequestOptions) {
-  if (!options.file) {
-    return;
-  }
-  uploading.value = true;
-  try {
-    const formData = new FormData();
-    formData.append('file', options.file);
-    const { data } = await client.post<{ url: string }>('/files/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    form.imageUrl = data.url;
-    ElMessage.success('图片上传成功');
-    options.onSuccess?.(data);
-  } catch (error) {
-    console.error(error);
-    const message = buildDisplayError('图片上传失败', error);
-    ElMessage.error(message || '图片上传失败');
-    options.onError?.(error as Parameters<NonNullable<UploadRequestOptions['onError']>>[0]);
-  } finally {
-    uploading.value = false;
-  }
-}
 </script>
 
-<style scoped>
-.upload-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.upload-block {
-  display: inline-flex;
-}
-.preview {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.preview.placeholder {
-  color: var(--el-text-color-secondary);
-}
-.preview-text {
-  font-size: 12px;
-  color: var(--el-text-color-secondary);
-}
-</style>
+<style scoped></style>

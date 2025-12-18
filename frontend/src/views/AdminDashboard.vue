@@ -48,8 +48,26 @@
             <el-table-column prop="title" label="物品名称" />
             <el-table-column prop="location" label="地点" />
             <el-table-column prop="username" label="发布人" :formatter="formatOwner" />
-            <el-table-column prop="status" label="状态" :formatter="formatStatus" />
+            <el-table-column prop="status" label="状态" width="160">
+              <template #default="scope">
+                <el-tag :type="statusColor(scope.row.status)">{{ formatStatus(scope.row, null, scope.row.status) }}</el-tag>
+              </template>
+            </el-table-column>
             <el-table-column prop="createdAt" label="创建时间" :formatter="formatCreatedAt" width="180" />
+            <el-table-column label="操作" width="220">
+              <template #default="scope">
+                <el-select
+                  v-model="scope.row.status"
+                  placeholder="状态"
+                  size="small"
+                  style="width: 120px"
+                  @change="(value) => updateItemStatus(scope.row, value)"
+                >
+                  <el-option v-for="option in statusOptions" :key="option.value" :label="option.label" :value="option.value" />
+                </el-select>
+                <el-button type="danger" link size="small" @click="removeItem(scope.row)">删除</el-button>
+              </template>
+            </el-table-column>
           </el-table>
         </el-tab-pane>
 
@@ -73,6 +91,10 @@
         <el-tab-pane label="公告管理" name="announcements">
           <announcement-manager />
         </el-tab-pane>
+
+        <el-tab-pane label="Banner 管理" name="banners">
+          <banner-manager />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -84,13 +106,14 @@ import { ElMessage } from 'element-plus';
 import client from '../api/client';
 import ItemForm from '../components/ItemForm.vue';
 import AnnouncementManager from '../components/AnnouncementManager.vue';
+import BannerManager from '../components/BannerManager.vue';
 import { buildDisplayError } from '../utils/error';
-import { statusLabel } from '../utils/status';
+import { statusLabel, statusTagType } from '../utils/status';
 import { formatDateTime, formatUserDisplay } from '../utils/format';
 import { normalizeClaim, normalizeItem, normalizeUser } from '../utils/normalizers';
 import type { Claim, LostItem, AuthUser } from '../types';
 
-type AdminTab = 'users' | 'items' | 'claims' | 'announcements';
+type AdminTab = 'users' | 'items' | 'claims' | 'announcements' | 'banners';
 type AdminUser = AuthUser & { id: number | string; password?: string; createdAt?: string };
 
 const activeTab = ref<AdminTab>('users');
@@ -104,6 +127,12 @@ const newUser = reactive<Required<Pick<AdminUser, 'username' | 'password' | 'rol
 const users = ref<AdminUser[]>([]);
 const items = ref<LostItem[]>([]);
 const claims = ref<Claim[]>([]);
+const statusOptions = [
+  { value: 'OPEN', label: statusLabel('OPEN') },
+  { value: 'CLAIMED', label: statusLabel('CLAIMED') },
+  { value: 'RESOLVED', label: statusLabel('RESOLVED') },
+  { value: 'CLOSED', label: statusLabel('CLOSED') }
+];
 
 onMounted(async () => {
   await Promise.all([loadUsers(), loadItems(), loadClaims()]);
@@ -170,6 +199,38 @@ async function updateClaim(claim: Claim, status: string) {
   }
 }
 
+async function updateItemStatus(item: LostItem, status: string) {
+  if (!item?.id) return;
+  const previous = item.status;
+  item.status = status;
+  try {
+    const { data } = await client.put<LostItem>(`/items/${item.id}/status`, { status });
+    const normalized = normalizeItem({ ...item, ...data });
+    Object.assign(item, normalized);
+    ElMessage.success(`状态已更新为 ${statusLabel(item.status)}`);
+  } catch (error) {
+    console.warn('Failed to update item status', error);
+    item.status = previous;
+    const message = buildDisplayError('更新物品状态失败', error);
+    ElMessage.error(message || '更新物品状态失败');
+  }
+}
+
+async function removeItem(item: LostItem) {
+  if (!item?.id) return;
+  const original = [...items.value];
+  items.value = items.value.filter((row) => row.id !== item.id);
+  try {
+    await client.delete(`/items/${item.id}`);
+    ElMessage.success('物品已删除');
+  } catch (error) {
+    items.value = original;
+    console.warn('Failed to delete item', error);
+    const message = buildDisplayError('删除物品失败', error);
+    ElMessage.error(message || '删除物品失败');
+  }
+}
+
 async function loadUsers() {
   try {
     const { data } = await client.get<AdminUser[]>('/admin/users');
@@ -209,6 +270,10 @@ async function loadClaims() {
 
 function formatStatus(_row: Claim | LostItem, _column: unknown, cellValue: string) {
   return statusLabel(cellValue);
+}
+
+function statusColor(status?: string) {
+  return statusTagType(status);
 }
 
 function formatRole(_row: AdminUser, _column: unknown, cellValue: string) {
