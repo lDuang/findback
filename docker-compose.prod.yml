@@ -1,12 +1,12 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: lostfound-mysql
+    container_name: findback-mysql
     command: --default-authentication-plugin=mysql_native_password
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: lostfound
+      MYSQL_DATABASE: findback
       MYSQL_USER: appuser
       MYSQL_PASSWORD: apppass
     volumes:
@@ -17,13 +17,13 @@ services:
       - "3306:3306"
 
   backend:
-    image: ghcr.io/lduang/lost-backend:latest
-    container_name: lostfound-backend
+    image: ghcr.io/lduang/findback-back:latest
+    container_name: findback-back
     depends_on:
       - mysql
     restart: unless-stopped
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/lostfound?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/findback?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: appuser
       SPRING_DATASOURCE_PASSWORD: apppass
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
@@ -33,8 +33,8 @@ services:
       - "8080:8080"
 
   frontend:
-    image: ghcr.io/lduang/lost-frontend:latest
-    container_name: lostfound-frontend
+    image: ghcr.io/lduang/findback-front:latest
+    container_name: findback-front
     depends_on:
       - backend
     restart: unless-stopped
