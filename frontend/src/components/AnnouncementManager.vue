@@ -9,6 +9,7 @@
     <el-table :data="announcements" style="width: 100%">
       <el-table-column prop="title" label="标题" />
       <el-table-column prop="content" label="内容" />
+      <el-table-column prop="createdAt" label="创建时间" :formatter="formatCreatedAt" width="180" />
       <el-table-column label="操作" width="120">
         <template #default="scope">
           <el-button type="text" size="small" @click="remove(scope.$index)">删除</el-button>
@@ -23,6 +24,7 @@ import { onMounted, reactive } from 'vue';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import client from '../api/client';
 import { buildDisplayError } from '../utils/error';
+import { formatDateTime } from '../utils/format';
 import type { Announcement } from '../types';
 
 const announcements = reactive<Announcement[]>([]);
@@ -31,7 +33,14 @@ onMounted(async () => {
   try {
     const { data } = await client.get<Announcement[]>('/announcements');
     if (Array.isArray(data)) {
-      announcements.splice(0, announcements.length, ...data);
+      announcements.splice(
+        0,
+        announcements.length,
+        ...data.map((item) => ({
+          ...item,
+          createdAt: item.createdAt || (item as Record<string, unknown>)?.created_at?.toString?.() || ''
+        }))
+      );
       return;
     }
   } catch (error) {
@@ -42,7 +51,8 @@ onMounted(async () => {
   announcements.splice(0, announcements.length, {
     id: 'local-welcome',
     title: '欢迎使用',
-    content: '请清晰描述失物信息。'
+    content: '请清晰描述失物信息。',
+    createdAt: new Date().toISOString()
   });
 });
 
@@ -52,10 +62,20 @@ async function addAnnouncement() {
       confirmButtonText: '创建',
       cancelButtonText: '取消'
     });
-    const announcement: Announcement = { title: '公告', content: value, id: Date.now() };
+    const announcement: Announcement = {
+      title: '公告',
+      content: value,
+      id: Date.now(),
+      createdAt: new Date().toISOString()
+    };
     try {
       const { data } = await client.post<Announcement>('/announcements', announcement);
-      announcements.push(data || { ...announcement, id: Date.now() });
+      announcements.push(
+        data || {
+          ...announcement,
+          id: Date.now()
+        }
+      );
     } catch (error) {
       console.warn('Fallback to local announcement', error);
       announcements.push({ ...announcement, id: Date.now() });
@@ -82,6 +102,10 @@ async function remove(index: number) {
     ElMessage.warning(message || '删除公告未同步到服务器。');
   }
   ElMessage.success('已删除');
+}
+
+function formatCreatedAt(_row: Announcement, _column: unknown, value?: string) {
+  return formatDateTime(value);
 }
 </script>
 

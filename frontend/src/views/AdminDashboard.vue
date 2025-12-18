@@ -33,6 +33,7 @@
             <el-table-column prop="id" label="用户 ID" />
             <el-table-column prop="username" label="用户名" />
             <el-table-column prop="role" label="角色" :formatter="formatRole" />
+            <el-table-column prop="createdAt" label="创建时间" :formatter="formatCreatedAt" width="180" />
             <el-table-column label="操作" width="120">
               <template #default="scope">
                 <el-button type="text" size="small" @click="removeUser(scope.row)">移除</el-button>
@@ -42,11 +43,13 @@
         </el-tab-pane>
 
         <el-tab-pane label="物品管理" name="items">
-          <item-form @created="(item) => items.unshift(item)" />
+          <item-form @created="(item) => items.unshift(normalizeItem(item))" />
           <el-table :data="items" style="width: 100%; margin-top: 16px">
             <el-table-column prop="title" label="物品名称" />
             <el-table-column prop="location" label="地点" />
+            <el-table-column prop="username" label="发布人" :formatter="formatOwner" />
             <el-table-column prop="status" label="状态" :formatter="formatStatus" />
+            <el-table-column prop="createdAt" label="创建时间" :formatter="formatCreatedAt" width="180" />
           </el-table>
         </el-tab-pane>
 
@@ -55,7 +58,9 @@
             <el-table-column prop="itemId" label="物品 ID" />
             <el-table-column prop="id" label="认领 ID" />
             <el-table-column prop="reason" label="认领理由" />
+            <el-table-column prop="username" label="认领人" :formatter="formatOwner" />
             <el-table-column prop="status" label="状态" :formatter="formatStatus" />
+            <el-table-column prop="createdAt" label="提交时间" :formatter="formatCreatedAt" width="180" />
             <el-table-column label="操作" width="200">
               <template #default="scope">
                 <el-button size="small" type="success" @click="updateClaim(scope.row, 'APPROVED')">通过</el-button>
@@ -81,10 +86,12 @@ import ItemForm from '../components/ItemForm.vue';
 import AnnouncementManager from '../components/AnnouncementManager.vue';
 import { buildDisplayError } from '../utils/error';
 import { statusLabel } from '../utils/status';
+import { formatDateTime, formatUserDisplay } from '../utils/format';
+import { normalizeClaim, normalizeItem, normalizeUser } from '../utils/normalizers';
 import type { Claim, LostItem, AuthUser } from '../types';
 
 type AdminTab = 'users' | 'items' | 'claims' | 'announcements';
-type AdminUser = AuthUser & { id: number | string; password?: string };
+type AdminUser = AuthUser & { id: number | string; password?: string; createdAt?: string };
 
 const activeTab = ref<AdminTab>('users');
 const newUser = reactive<Required<Pick<AdminUser, 'username' | 'password' | 'role'>> & { id?: number | string }>(
@@ -109,7 +116,16 @@ async function addUser() {
   }
   try {
     const { data } = await client.post<AdminUser>('/admin/users', newUser);
-    users.value.unshift(data);
+    const normalized =
+      normalizeAdminUser(data) ||
+      ({
+        ...data,
+        id: data?.id ?? data?.userId ?? Date.now().toString(),
+        userId: data?.userId ?? data?.id ?? Date.now().toString(),
+        username: data?.username ?? newUser.username,
+        role: data?.role ?? newUser.role
+      } as AdminUser);
+    users.value.unshift(normalized);
     newUser.username = '';
     newUser.password = '';
     newUser.role = 'USER';
@@ -142,7 +158,9 @@ async function updateClaim(claim: Claim, status: string) {
   claim.status = status.toUpperCase();
   try {
     const { data } = await client.put<Claim>(`/claims/${claim.id}/status`, { status: claim.status });
-    claim.status = data?.status || claim.status;
+    const normalized = normalizeClaim({ ...claim, ...data });
+    claim.status = normalized.status || claim.status;
+    claim.createdAt = normalized.createdAt || claim.createdAt;
     ElMessage.success(`认领状态：${formatStatus(claim, null, claim.status)}`);
   } catch (error) {
     console.warn('Failed to persist claim status', error);
@@ -155,7 +173,11 @@ async function updateClaim(claim: Claim, status: string) {
 async function loadUsers() {
   try {
     const { data } = await client.get<AdminUser[]>('/admin/users');
-    if (Array.isArray(data)) users.value = data;
+    if (Array.isArray(data)) {
+      users.value = data
+        .map((user) => normalizeAdminUser(user))
+        .filter(Boolean) as AdminUser[];
+    }
   } catch (error) {
     console.error('Failed to load users', error);
     const message = buildDisplayError('加载用户失败', error);
@@ -166,7 +188,7 @@ async function loadUsers() {
 async function loadItems() {
   try {
     const { data } = await client.get<LostItem[]>('/items');
-    if (Array.isArray(data)) items.value = data;
+    if (Array.isArray(data)) items.value = data.map(normalizeItem);
   } catch (error) {
     console.warn('Using empty items list in admin', error);
     const message = buildDisplayError('加载物品失败', error);
@@ -177,7 +199,7 @@ async function loadItems() {
 async function loadClaims() {
   try {
     const { data } = await client.get<Claim[]>('/claims');
-    if (Array.isArray(data)) claims.value = data;
+    if (Array.isArray(data)) claims.value = data.map(normalizeClaim);
   } catch (error) {
     console.warn('Using empty claims list in admin', error);
     const message = buildDisplayError('加载认领失败', error);
@@ -194,6 +216,25 @@ function formatRole(_row: AdminUser, _column: unknown, cellValue: string) {
   if (role === 'ADMIN') return '管理员';
   if (role === 'USER') return '普通用户';
   return cellValue || '未知角色';
+}
+
+function formatOwner(row: LostItem | Claim) {
+  return formatUserDisplay(row.username, row.userId);
+}
+
+function formatCreatedAt(_row: { createdAt?: string }, _column: unknown, value?: string) {
+  return formatDateTime(value);
+}
+
+function normalizeAdminUser(user?: Partial<AdminUser> | null): AdminUser | null {
+  const normalized = normalizeUser({ ...user, userId: user?.userId ?? user?.id });
+  if (!normalized) return null;
+  return {
+    id: user?.id ?? normalized.userId,
+    password: user?.password,
+    createdAt: (user as Record<string, unknown>)?.createdAt?.toString?.(),
+    ...normalized
+  };
 }
 </script>
 

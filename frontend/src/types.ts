@@ -2,13 +2,14 @@ export type Role = 'ADMIN' | 'USER' | string;
 
 export interface AuthUser {
   userId: number | string;
-  username?: string;
+  username: string;
   role: Role;
 }
 
 export interface LostItem {
   id: number | string;
   userId: number | string;
+  username?: string;
   title: string;
   description?: string;
   status: string;
@@ -21,9 +22,11 @@ export interface Claim {
   id: number | string;
   itemId: number | string;
   userId: number | string;
+  username?: string;
   reason?: string;
   evidenceUrl?: string;
-  status?: string;
+  status: string;
+  createdAt?: string;
 }
 
 export interface Announcement {
