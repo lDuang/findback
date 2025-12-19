@@ -15,6 +15,7 @@ spring:
   sql:
     init:
       mode: ${SPRING_SQL_INIT_MODE:always}
+      encoding: UTF-8
   h2:
     console:
       enabled: true
