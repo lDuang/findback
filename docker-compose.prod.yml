@@ -6,11 +6,11 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: findback
+      MYSQL_DATABASE: findback  # 注意：数据库名从 lostfound 改为 findback
       MYSQL_USER: appuser
       MYSQL_PASSWORD: apppass
     volumes:
-      - mysql-data:/var/lib/mysql
+      # - mysql-data:/var/lib/mysql  # 注释：不需要持久化
       - ./backend/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql:ro
       - ./backend/src/main/resources/data.sql:/docker-entrypoint-initdb.d/2-data.sql:ro
     ports:
@@ -30,8 +30,8 @@ services:
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
       SPRING_SQL_INIT_MODE: never
       SERVER_PORT: 8080
-    volumes:
-      - uploads-data:/app/uploads
+    # volumes:
+    #   - uploads-data:/app/uploads  # 注释：不需要持久化
     ports:
       - "8080:8080"
 
@@ -44,7 +44,8 @@ services:
     ports:
       - "80:80"
 
-volumes:
-  mysql-data:
-  uploads-data:
+# 注释掉的持久化卷定义（需要时启用）
+# volumes:
+#   mysql-data:
+#   uploads-data:
 
