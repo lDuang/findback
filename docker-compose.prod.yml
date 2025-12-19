@@ -2,7 +2,13 @@ services:
   mysql:
     image: mysql:8.0
     container_name: findback-mysql
-    command: --default-authentication-plugin=mysql_native_password
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --skip-character-set-client-handshake
+      --init-connect='SET NAMES utf8mb4'
+      --sql-mode=""  # 新增：关闭严格模式，提升初始化兼容性
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -10,21 +16,34 @@ services:
       MYSQL_USER: appuser
       MYSQL_PASSWORD: apppass
     volumes:
+      - type: tmpfs
+        target: /var/lib/mysql
+        # tmpfs:
+        #   size: 1073741824  # 可选：限制tmpfs大小为1G，可删这行
       # - mysql-data:/var/lib/mysql  # 注释：不需要持久化
       - ./backend/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql:ro
       - ./backend/src/main/resources/data.sql:/docker-entrypoint-initdb.d/2-data.sql:ro
     ports:
       - "3306:3306"
+    # 新增：健康检查，确保MySQL就绪后启动后端
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     image: ghcr.io/lduang/findback-back:latest
     container_name: findback-back
+    # 修正：依赖MySQL健康检查通过，避免连接失败/编码问题
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy  # 关键：等待MySQL就绪
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/findback?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      # 修正：补充utf8mb4相关参数，确保JDBC编码传输无乱码
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/findback?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci  # 关键：新增字符集结果和排序规则参数
       SPRING_DATASOURCE_USERNAME: appuser
       SPRING_DATASOURCE_PASSWORD: apppass
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver

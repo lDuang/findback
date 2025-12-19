@@ -1,3 +1,5 @@
+SET NAMES utf8mb4;
+
 -- 插入用户数据
 INSERT INTO users (username, password, role) VALUES
     ('admin', 'admin', 'ADMIN'),
