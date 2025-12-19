@@ -1,6 +1,7 @@
 package com.lostfound.backend.controller;
 
 import com.lostfound.backend.entity.Banner;
+import com.lostfound.backend.dto.BannerRequest;
 import com.lostfound.backend.model.UserContext;
 import com.lostfound.backend.service.AuthService;
 import com.lostfound.backend.service.BannerService;
@@ -40,22 +41,32 @@ public class AdminBannerController {
     }
 
     @PostMapping
-    public ResponseEntity<Banner> create(@RequestBody Banner banner, HttpServletRequest servletRequest) {
+    public ResponseEntity<Banner> create(@RequestBody BannerRequest request, HttpServletRequest servletRequest) {
         UserContext context = authService.extractContext(
                 servletRequest.getHeader("X-User-Id"),
                 servletRequest.getHeader("X-User-Role"));
         authService.ensureAdmin(context);
+        Banner banner = new Banner();
+        banner.setTitle(request.getTitle());
+        banner.setImageUrl(request.getImageUrl());
+        banner.setLinkUrl(request.getLinkUrl());
+        banner.setDescription(request.getDescription());
         return ResponseEntity.status(HttpStatus.CREATED).body(bannerService.create(banner, context));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Banner> update(@PathVariable Long id,
-                                         @RequestBody Banner banner,
+                                         @RequestBody BannerRequest request,
                                          HttpServletRequest servletRequest) {
         UserContext context = authService.extractContext(
                 servletRequest.getHeader("X-User-Id"),
                 servletRequest.getHeader("X-User-Role"));
         authService.ensureAdmin(context);
+        Banner banner = new Banner();
+        banner.setTitle(request.getTitle());
+        banner.setImageUrl(request.getImageUrl());
+        banner.setLinkUrl(request.getLinkUrl());
+        banner.setDescription(request.getDescription());
         return ResponseEntity.ok(bannerService.update(id, banner, context));
     }
 

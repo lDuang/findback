@@ -5,6 +5,7 @@ public class BannerRequest {
     private String title;
     private String imageUrl;
     private String linkUrl;
+    private String description;
 
     public String getTitle() {
         return title;
@@ -28,5 +29,13 @@ public class BannerRequest {
 
     public void setLinkUrl(String linkUrl) {
         this.linkUrl = linkUrl;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

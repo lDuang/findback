@@ -21,7 +21,7 @@ public class BannerService {
     }
 
     public List<Banner> listAll() {
-        return bannerRepository.findAll();
+        return bannerRepository.findAllByOrderByCreatedAtDesc();
     }
 
     public Banner create(Banner banner, UserContext context) {
@@ -48,6 +48,9 @@ public class BannerService {
         }
         if (StringUtils.hasText(updated.getLinkUrl())) {
             existing.setLinkUrl(updated.getLinkUrl());
+        }
+        if (StringUtils.hasText(updated.getDescription())) {
+            existing.setDescription(updated.getDescription());
         }
         return bannerRepository.save(existing);
     }

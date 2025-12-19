@@ -50,10 +50,11 @@
         <el-button link type="primary" @click="goToItems">查看物品</el-button>
       </div>
       <div class="banner-surface" v-if="banners.length">
-        <el-carousel height="220px" arrow="always" indicator-position="outside">
+        <el-carousel height="240px" arrow="always" indicator-position="outside">
           <el-carousel-item v-for="banner in banners" :key="banner.id">
             <div
               class="banner-slide"
+              :class="{ 'banner-slide--clickable': Boolean(banner.link) }"
               :style="{ backgroundImage: banner.imageUrl ? `url(${banner.imageUrl})` : '' }"
               @click="onBannerClick(banner)"
             >
@@ -61,18 +62,12 @@
                 <div class="banner-meta">
                   <p class="card-eyebrow">{{ formatCreatedAt(banner.createdAt) || '最新' }}</p>
                   <h3>{{ banner.title }}</h3>
-                  <p class="banner-desc">{{ banner.description || '点击查看详情' }}</p>
+                  <p class="banner-desc">{{ banner.description || '轻点图片切换或跳转' }}</p>
                 </div>
-                <div class="banner-actions">
-                  <el-button
-                    v-if="banner.link"
-                    type="primary"
-                    size="small"
-                    @click.stop="openLink(banner.link)"
-                  >
+                <div class="banner-actions" v-if="banner.link">
+                  <el-button type="primary" size="small" @click.stop="openLink(banner.link)">
                     立即查看
                   </el-button>
-                  <span v-else class="banner-desc">暂无跳转链接，点击切换下一条</span>
                 </div>
               </div>
             </div>
@@ -495,6 +490,10 @@ function formatCreatedAt(value?: string) {
   align-items: stretch;
   padding: 0;
   background-color: #0f172a;
+  cursor: default;
+}
+
+.banner-slide--clickable {
   cursor: pointer;
 }
 
