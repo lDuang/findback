@@ -15,4 +15,6 @@ public interface ClaimRepository extends JpaRepository<Claim, Long> {
     List<Claim> findByUserIdAndItemId(Long userId, Long itemId);
 
     void deleteByItemId(Long itemId);
+
+    long countByStatus(String status);
 }

@@ -3,6 +3,7 @@ import Home from '../views/Home.vue';
 import ItemsList from '../views/ItemsList.vue';
 import ItemDetail from '../views/ItemDetail.vue';
 import Login from '../views/Login.vue';
+import Register from '../views/Register.vue';
 import UserCenter from '../views/UserCenter.vue';
 import AdminDashboard from '../views/AdminDashboard.vue';
 import { useAuthStore } from '../stores/auth';
@@ -21,6 +22,7 @@ const router = createRouter({
     { path: '/items', name: 'items', component: ItemsList, meta: { title: '物品列表' } },
     { path: '/items/:id', name: 'item-detail', component: ItemDetail, props: true, meta: { title: '物品详情' } },
     { path: '/login', name: 'login', component: Login, meta: { title: '登录' } },
+    { path: '/register', name: 'register', component: Register, meta: { title: '注册' } },
     {
       path: '/user',
       name: 'user',

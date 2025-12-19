@@ -1,2 +1,4 @@
 target/
-uploads/
+# 运行时上传目录忽略，保留资源里的示例文件
+/uploads/
+!/src/main/resources/uploads/

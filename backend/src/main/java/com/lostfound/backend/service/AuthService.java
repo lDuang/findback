@@ -25,13 +25,24 @@ public class AuthService {
         }
         return userRepository.findByUsernameAndPassword(username, password)
                 .map(user -> {
-                    Map<String, Object> payload = new HashMap<>();
-                    payload.put("userId", user.getId());
-                    payload.put("username", user.getUsername());
-                    payload.put("role", normalizeRole(user.getRole()));
-                    return payload;
+                    return toPayload(user.getId(), user.getUsername(), normalizeRole(user.getRole()));
                 })
                 .orElseThrow(() -> new IllegalArgumentException("Invalid username or password"));
+    }
+
+    public Map<String, Object> register(String username, String password) {
+        if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
+            throw new IllegalArgumentException("Username and password are required");
+        }
+        userRepository.findByUsername(username).ifPresent(existing -> {
+            throw new IllegalArgumentException("Username already exists");
+        });
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(password);
+        user.setRole("USER");
+        User saved = userRepository.save(user);
+        return toPayload(saved.getId(), saved.getUsername(), saved.getRole());
     }
 
     public UserContext extractContext(String userIdHeader, String roleHeader) {
@@ -75,5 +86,13 @@ public class AuthService {
             return role;
         }
         return role.toUpperCase();
+    }
+
+    private Map<String, Object> toPayload(Long userId, String username, String role) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("userId", userId);
+        payload.put("username", username);
+        payload.put("role", normalizeRole(role));
+        return payload;
     }
 }

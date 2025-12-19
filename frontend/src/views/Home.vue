@@ -25,18 +25,19 @@
         </div>
         <div class="panel-body">
           <div class="stat">
-            <p class="stat-label">今日新增</p>
-            <p class="stat-value">18</p>
+            <p class="stat-label">在库物品</p>
+            <p class="stat-value">{{ heroStats.totalItems }}</p>
           </div>
           <div class="stat">
             <p class="stat-label">已归还</p>
-            <p class="stat-value">132</p>
+            <p class="stat-value">{{ heroStats.resolvedItems }}</p>
           </div>
           <div class="stat">
-            <p class="stat-label">处理中</p>
-            <p class="stat-value">47</p>
+            <p class="stat-label">开放认领</p>
+            <p class="stat-value">{{ heroStats.openItems }}</p>
           </div>
         </div>
+        <p class="stat-hint">{{ heroSubtitle }}</p>
       </div>
     </section>
 
@@ -51,16 +52,28 @@
       <div class="banner-surface" v-if="banners.length">
         <el-carousel height="220px" arrow="always" indicator-position="outside">
           <el-carousel-item v-for="banner in banners" :key="banner.id">
-            <div class="banner-slide" :style="{ backgroundImage: banner.imageUrl ? `url(${banner.imageUrl})` : '' }">
+            <div
+              class="banner-slide"
+              :style="{ backgroundImage: banner.imageUrl ? `url(${banner.imageUrl})` : '' }"
+              @click="onBannerClick(banner)"
+            >
               <div class="banner-overlay">
                 <div class="banner-meta">
                   <p class="card-eyebrow">{{ formatCreatedAt(banner.createdAt) || '最新' }}</p>
                   <h3>{{ banner.title }}</h3>
                   <p class="banner-desc">{{ banner.description || '点击查看详情' }}</p>
                 </div>
-                <el-button v-if="banner.link" type="primary" size="small" @click="openLink(banner.link)">
-                  立即查看
-                </el-button>
+                <div class="banner-actions">
+                  <el-button
+                    v-if="banner.link"
+                    type="primary"
+                    size="small"
+                    @click.stop="openLink(banner.link)"
+                  >
+                    立即查看
+                  </el-button>
+                  <span v-else class="banner-desc">暂无跳转链接，点击切换下一条</span>
+                </div>
               </div>
             </div>
           </el-carousel-item>
@@ -154,7 +167,7 @@ import client from '../api/client';
 import { extractErrorMessage } from '../utils/error';
 import { formatDateTime } from '../utils/format';
 import { normalizeAnnouncement, normalizeBanner } from '../utils/normalizers';
-import type { Announcement, Banner } from '../types';
+import type { Announcement, Banner, StatsOverview } from '../types';
 
 interface FeatureCard {
   title: string;
@@ -171,8 +184,11 @@ const bannersLoading = ref(false);
 const announcements = ref<Announcement[]>([]);
 const announcementHint = ref('正在加载公告...');
 const announcementLoading = ref(false);
+const stats = ref<StatsOverview | null>(null);
+const statsLoading = ref(false);
 
 onMounted(() => {
+  loadStats();
   loadBanners();
   loadAnnouncements();
 });
@@ -212,6 +228,30 @@ const featureCards = computed<FeatureCard[]>(() => [
   }
 ]);
 
+const heroStats = computed(() => ({
+  totalItems: stats.value?.totalItems ?? 0,
+  openItems: stats.value?.openItems ?? 0,
+  resolvedItems: stats.value?.claimedItems ?? 0
+}));
+
+const heroSubtitle = computed(() => {
+  if (statsLoading.value) return '正在加载最新数据...';
+  if (!stats.value) return '实时数据暂不可用，稍后再试';
+  return '数据来自后端实时统计';
+});
+
+async function loadStats() {
+  statsLoading.value = true;
+  try {
+    const { data } = await client.get<StatsOverview>('/stats/overview');
+    stats.value = data;
+  } catch (error) {
+    console.warn('Failed to load stats', error);
+  } finally {
+    statsLoading.value = false;
+  }
+}
+
 async function loadBanners() {
   bannersLoading.value = true;
   try {
@@ -244,7 +284,16 @@ async function loadAnnouncements() {
   }
 }
 
-function openLink(link: string) {
+function onBannerClick(banner: Banner) {
+  if (banner.link) {
+    openLink(banner.link);
+    return;
+  }
+  goToItems();
+}
+
+function openLink(link?: string) {
+  if (!link) return;
   window.open(link, '_blank');
 }
 
@@ -377,6 +426,12 @@ function formatCreatedAt(value?: string) {
   color: #f8fafc;
 }
 
+.stat-hint {
+  margin: 6px 0 0;
+  color: rgba(226, 232, 240, 0.85);
+  font-size: 12px;
+}
+
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -440,6 +495,7 @@ function formatCreatedAt(value?: string) {
   align-items: stretch;
   padding: 0;
   background-color: #0f172a;
+  cursor: pointer;
 }
 
 .banner-overlay {
@@ -450,12 +506,15 @@ function formatCreatedAt(value?: string) {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
+  pointer-events: none;
 }
 
 .banner-meta {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  pointer-events: auto;
 }
 
 .banner-overlay h3 {
@@ -465,6 +524,12 @@ function formatCreatedAt(value?: string) {
 .banner-desc {
   margin: 0 0 8px;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.banner-actions {
+  display: flex;
+  align-items: center;
+  pointer-events: auto;
 }
 
 .announcement h4 {

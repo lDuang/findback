@@ -44,3 +44,13 @@ export interface Banner {
   description?: string;
   createdAt?: string;
 }
+
+export interface StatsOverview {
+  totalItems: number;
+  openItems: number;
+  claimedItems: number;
+  totalClaims: number;
+  pendingClaims: number;
+  approvedClaims: number;
+  totalUsers: number;
+}

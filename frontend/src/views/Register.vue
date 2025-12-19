@@ -3,8 +3,8 @@
     <el-card class="login-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span class="title">账号登录</span>
-          <span class="subtitle">请输入用户名和密码完成登录</span>
+          <span class="title">账号注册</span>
+          <span class="subtitle">创建一个账户以发布和认领失物</span>
         </div>
       </template>
       <el-form :model="form" label-width="120px" @submit.prevent>
@@ -14,9 +14,12 @@
         <el-form-item label="密码">
           <el-input v-model="form.password" type="password" placeholder="请输入密码" />
         </el-form-item>
+        <el-form-item label="确认密码">
+          <el-input v-model="form.confirm" type="password" placeholder="请再次输入密码" />
+        </el-form-item>
         <el-form-item>
-          <el-button type="primary" :loading="loading" @click="login">登录</el-button>
-          <el-button link @click="goRegister">没有账号？去注册</el-button>
+          <el-button type="primary" :loading="loading" @click="register">注册</el-button>
+          <el-button link @click="goLogin">已有账号？去登录</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -35,32 +38,37 @@ const auth = useAuthStore();
 
 const form = reactive({
   username: '',
-  password: ''
+  password: '',
+  confirm: ''
 });
 const loading = ref(false);
 
-function goRegister() {
-  router.push({ name: 'register', query: { redirect: route.query.redirect as string } });
+function goLogin() {
+  router.push({ name: 'login', query: { redirect: route.query.redirect as string } });
 }
 
-async function login() {
+async function register() {
   if (!form.username || !form.password) {
     ElMessage.warning('请输入用户名和密码');
+    return;
+  }
+  if (form.password !== form.confirm) {
+    ElMessage.warning('两次输入的密码不一致');
     return;
   }
 
   loading.value = true;
   try {
-    await auth.login(form.username, form.password);
+    await auth.register(form.username, form.password);
     if (!auth.user) {
-      throw new Error('登录状态异常：未获取到用户信息');
+      throw new Error('注册状态异常：未获取到用户信息');
     }
-    ElMessage.success('登录成功');
+    ElMessage.success('注册成功，已自动登录');
     const redirect = (route.query.redirect as string) || '/';
     router.push(redirect);
   } catch (error: unknown) {
     const backendMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-    const message = translateErrorMessage(backendMessage) || '登录失败，请稍后重试';
+    const message = translateErrorMessage(backendMessage) || '注册失败，请稍后重试';
     ElMessage.error(message);
   } finally {
     loading.value = false;
@@ -70,8 +78,8 @@ async function login() {
 function translateErrorMessage(message?: string | null): string | null {
   if (!message) return null;
   const lower = message.toLowerCase();
-  if (lower.includes('invalid username or password')) {
-    return '用户名或密码错误';
+  if (lower.includes('exists')) {
+    return '用户名已存在，请更换一个';
   }
   if (lower.includes('required')) {
     return '请输入用户名和密码';

@@ -10,6 +10,7 @@
         <el-menu-item index="/">首页</el-menu-item>
         <el-menu-item index="/items">物品列表</el-menu-item>
         <el-menu-item v-if="!isLoggedIn" index="/login">登录</el-menu-item>
+        <el-menu-item v-if="!isLoggedIn" index="/register">注册</el-menu-item>
         <el-menu-item v-if="isLoggedIn" index="/user">用户中心</el-menu-item>
         <el-menu-item v-if="isAdmin" index="/admin">管理员面板</el-menu-item>
       </el-menu>

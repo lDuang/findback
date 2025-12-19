@@ -37,6 +37,22 @@ export const useAuthStore = defineStore('auth', {
       cacheUser(normalizedUser);
       this.isRestoring = false;
     },
+    async register(username: string, password: string) {
+      const { data } = await client.post<LoginResponse>('/auth/register', { username, password });
+      const userId = data?.userId;
+      const usernameFromResponse = data?.username ?? '';
+      const role = normalizeRole(data?.role ?? '');
+
+      if (!userId || !role) {
+        throw new Error('注册响应异常：缺少用户信息');
+      }
+
+      const normalizedUser = { userId, username: usernameFromResponse || username, role };
+
+      this.user = normalizedUser;
+      cacheUser(normalizedUser);
+      this.isRestoring = false;
+    },
     logout() {
       this.user = null;
       cacheUser(null);
