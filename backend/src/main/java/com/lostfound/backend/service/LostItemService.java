@@ -6,6 +6,7 @@ import com.lostfound.backend.model.UserContext;
 import com.lostfound.backend.repository.ClaimRepository;
 import com.lostfound.backend.repository.LostItemRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -88,6 +89,7 @@ public class LostItemService {
         return lostItemRepository.save(existing);
     }
 
+    @Transactional
     public void deleteItem(Long itemId, UserContext context) {
         LostItem existing = lostItemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Item not found"));

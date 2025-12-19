@@ -19,6 +19,9 @@ public class FileStorageService {
     @Value("${app.upload-dir:uploads}")
     private String uploadDir;
 
+    @Value("${server.servlet.context-path:}")
+    private String contextPath;
+
     private final MediaFileRepository mediaFileRepository;
 
     public FileStorageService(MediaFileRepository mediaFileRepository) {
@@ -43,12 +46,23 @@ public class FileStorageService {
         Path destination = destinationDir.resolve(storedName);
         file.transferTo(destination);
 
-        String url = "/uploads/" + storedName;
+        String url = buildFileUrl(storedName);
 
         MediaFile mediaFile = new MediaFile();
         mediaFile.setFilename(originalName.isEmpty() ? storedName : originalName);
         mediaFile.setUrl(url);
         mediaFile.setUploaderId(uploaderId);
         return mediaFileRepository.save(mediaFile);
+    }
+
+    private String buildFileUrl(String storedName) {
+        String normalizedContext = contextPath == null ? "" : contextPath.trim();
+        if (normalizedContext.endsWith("/")) {
+            normalizedContext = normalizedContext.substring(0, normalizedContext.length() - 1);
+        }
+        if (!normalizedContext.isEmpty() && !normalizedContext.startsWith("/")) {
+            normalizedContext = "/" + normalizedContext;
+        }
+        return normalizedContext + "/uploads/" + storedName;
     }
 }
