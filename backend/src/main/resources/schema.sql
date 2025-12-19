@@ -43,7 +43,9 @@ CREATE TABLE IF NOT EXISTS banners (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
     image_url VARCHAR(500),
-    link_url VARCHAR(500)
+    link_url VARCHAR(500),
+    description TEXT,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS media_files (
