@@ -108,12 +108,12 @@ async function submit() {
   try {
     const payload = { title: form.title, imageUrl: form.imageUrl, link: form.link, description: form.description };
     if (form.id) {
-      const { data } = await client.put<Banner>(`/banners/${form.id}`, payload);
+      const { data } = await client.put<Banner>(`/admin/banners/${form.id}`, payload);
       const normalized = normalizeBanner({ ...form, ...data });
       updateLocalBanner(normalized);
       ElMessage.success('Banner 已更新');
     } else {
-      const { data } = await client.post<Banner>('/banners', payload);
+      const { data } = await client.post<Banner>('/admin/banners', payload);
       const normalized = normalizeBanner(data || { ...payload, id: Date.now() });
       banners.value.unshift(normalized);
       ElMessage.success('Banner 已创建');
@@ -136,7 +136,7 @@ async function remove(banner: Banner) {
   const original = [...banners.value];
   banners.value = banners.value.filter((item) => item.id !== banner.id);
   try {
-    await client.delete(`/banners/${banner.id}`);
+    await client.delete(`/admin/banners/${banner.id}`);
     ElMessage.success('已删除 Banner');
     bannerEmptyText.value = banners.value.length ? '' : '暂无 Banner，请先上传。';
   } catch (error) {

@@ -79,10 +79,15 @@
             <el-table-column prop="username" label="认领人" :formatter="formatOwner" />
             <el-table-column prop="status" label="状态" :formatter="formatStatus" />
             <el-table-column prop="createdAt" label="提交时间" :formatter="formatCreatedAt" width="180" />
-            <el-table-column label="操作" width="200">
+            <el-table-column label="操作" width="260">
               <template #default="scope">
                 <el-button size="small" type="success" @click="updateClaim(scope.row, 'APPROVED')">通过</el-button>
                 <el-button size="small" type="danger" @click="updateClaim(scope.row, 'REJECTED')">拒绝</el-button>
+                <el-popconfirm title="确认删除此认领记录？" @confirm="removeClaim(scope.row)">
+                  <template #reference>
+                    <el-button size="small" type="danger" plain>删除</el-button>
+                  </template>
+                </el-popconfirm>
               </template>
             </el-table-column>
           </el-table>
@@ -196,6 +201,24 @@ async function updateClaim(claim: Claim, status: string) {
     claim.status = previousStatus;
     const message = buildDisplayError('更新认领状态失败', error);
     ElMessage.error(message || '更新认领状态失败');
+  }
+}
+
+async function removeClaim(claim: Claim) {
+  if (!claim?.id) {
+    ElMessage.error('缺少认领 ID');
+    return;
+  }
+  const original = [...claims.value];
+  claims.value = claims.value.filter((row) => row.id !== claim.id);
+  try {
+    await client.delete(`/claims/${claim.id}`);
+    ElMessage.success('认领记录已删除');
+  } catch (error) {
+    claims.value = original;
+    console.warn('Failed to delete claim', error);
+    const message = buildDisplayError('删除认领失败', error);
+    ElMessage.error(message || '删除认领失败');
   }
 }
 
