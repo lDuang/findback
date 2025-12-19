@@ -1,5 +1,5 @@
 <template>
-  <div class="home">
+  <div class="home page-shell">
     <section class="hero">
       <div class="hero__content">
         <p class="eyebrow">失物招领 · 校园/社区互助</p>
@@ -40,23 +40,24 @@
       </div>
     </section>
 
-    <section class="updates">
-      <el-card class="banner-card" v-loading="bannersLoading">
-        <template #header>
-          <div class="card-header">
-            <div>
-              <p class="card-eyebrow">轮播图</p>
-              <span class="card-title">最新 Banner</span>
-            </div>
-            <el-button link type="primary" @click="goToItems">查看物品</el-button>
-          </div>
-        </template>
-        <el-carousel v-if="banners.length" height="240px" indicator-position="outside" type="card">
+    <section class="banner-strip" v-loading="bannersLoading">
+      <div class="card-header">
+        <div>
+          <p class="card-eyebrow">轮播图</p>
+          <span class="card-title">最新横幅</span>
+        </div>
+        <el-button link type="primary" @click="goToItems">查看物品</el-button>
+      </div>
+      <div class="banner-surface" v-if="banners.length">
+        <el-carousel height="220px" arrow="always" indicator-position="outside">
           <el-carousel-item v-for="banner in banners" :key="banner.id">
             <div class="banner-slide" :style="{ backgroundImage: banner.imageUrl ? `url(${banner.imageUrl})` : '' }">
               <div class="banner-overlay">
-                <h3>{{ banner.title }}</h3>
-                <p class="banner-desc">{{ banner.description || '点击查看详情' }}</p>
+                <div class="banner-meta">
+                  <p class="card-eyebrow">{{ formatCreatedAt(banner.createdAt) || '最新' }}</p>
+                  <h3>{{ banner.title }}</h3>
+                  <p class="banner-desc">{{ banner.description || '点击查看详情' }}</p>
+                </div>
                 <el-button v-if="banner.link" type="primary" size="small" @click="openLink(banner.link)">
                   立即查看
                 </el-button>
@@ -64,9 +65,11 @@
             </div>
           </el-carousel-item>
         </el-carousel>
-        <el-empty v-else :description="bannerHint" />
-      </el-card>
+      </div>
+      <el-empty v-else :description="bannerHint" />
+    </section>
 
+    <section class="updates">
       <el-card class="announcement-card" v-loading="announcementLoading">
         <template #header>
           <div class="card-header">
@@ -254,11 +257,7 @@ function formatCreatedAt(value?: string) {
 .home {
   display: flex;
   flex-direction: column;
-  gap: 32px;
-  padding: 32px 24px 64px;
-  background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.12), transparent 28%),
-    radial-gradient(circle at 80% 10%, rgba(16, 185, 129, 0.12), transparent 30%),
-    linear-gradient(135deg, #f8fafc 0%, #fff 60%, #f1f5f9 100%);
+  gap: 28px;
 }
 
 .hero {
@@ -266,11 +265,11 @@ function formatCreatedAt(value?: string) {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 24px;
   align-items: center;
-  background: linear-gradient(135deg, rgba(79, 70, 229, 0.12), rgba(16, 185, 129, 0.08));
+  background: #ffffff;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 28px;
-  box-shadow: 0 16px 45px -20px rgba(15, 23, 42, 0.35);
+  box-shadow: var(--el-box-shadow-light);
 }
 
 .hero__content h1 {
@@ -305,7 +304,7 @@ function formatCreatedAt(value?: string) {
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 13px;
-  box-shadow: 0 6px 18px -12px rgba(15, 23, 42, 0.4);
+  box-shadow: var(--el-box-shadow-lighter);
 }
 
 .eyebrow {
@@ -409,10 +408,25 @@ function formatCreatedAt(value?: string) {
   font-size: 16px;
 }
 
-.banner-card,
 .announcement-card {
   border-radius: 14px;
-  box-shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.35);
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+.banner-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 14px;
+  box-shadow: var(--el-box-shadow-lighter);
+}
+
+.banner-surface {
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .banner-slide {
@@ -423,17 +437,25 @@ function formatCreatedAt(value?: string) {
   background-size: cover;
   background-position: center;
   display: flex;
-  align-items: flex-end;
-  padding: 16px;
-  box-shadow: inset 0 -40px 80px rgba(0, 0, 0, 0.35);
+  align-items: stretch;
+  padding: 0;
+  background-color: #0f172a;
 }
 
 .banner-overlay {
-  background: rgba(0, 0, 0, 0.45);
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.6));
   color: #fff;
-  border-radius: 12px;
-  padding: 12px;
+  padding: 16px 18px;
   width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.banner-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .banner-overlay h3 {

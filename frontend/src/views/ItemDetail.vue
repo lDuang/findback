@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page-shell item-detail-page">
     <el-empty v-if="!displayItem" :description="loadHint" />
     <el-row v-else :gutter="16">
       <el-col :md="16" :span="16">
@@ -24,8 +24,9 @@
               >
                 <div class="claim-content">
                   <div class="claim-meta">
-                    <el-tag size="small" :type="statusColor(claim.status)" disable-transitions>{{ claimStatusLabel(claim.status) }}</el-tag>
-                    <span class="claim-user">{{ displayOwner(claim) }}</span>
+                    <el-badge :value="claimStatusLabel(claim.status)" :type="statusColor(claim.status)" class="status-badge">
+                      <span class="claim-user">{{ displayOwner(claim) }}</span>
+                    </el-badge>
                   </div>
                   <p>{{ claim.reason || '暂无详情' }}</p>
                   <div v-if="claim.evidenceUrl" class="claim-proof">
@@ -276,18 +277,6 @@ async function updateStatus() {
 </script>
 
 <style scoped>
-.page {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 24px 16px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background: radial-gradient(circle at 18% 18%, rgba(79, 70, 229, 0.05), transparent 32%),
-    radial-gradient(circle at 80% 12%, rgba(16, 185, 129, 0.05), transparent 30%),
-    #f9fafb;
-}
-
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -327,6 +316,10 @@ async function updateStatus() {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.status-badge :deep(.el-badge__content) {
+  font-weight: 600;
 }
 
 .claim-user {
