@@ -2,7 +2,6 @@ services:
   mysql:
     image: mysql:8.0
     container_name: findback-mysql
-    # 修正：补充--character-set-server=utf8mb4（原缺少值），新增--sql-mode=""提升健壮性，调整格式为多行易读
     command: >
       --default-authentication-plugin=mysql_native_password
       --character-set-server=utf8mb4
@@ -13,15 +12,12 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: findback  # 数据库名从 lostfound 改为 findback
+      MYSQL_DATABASE: findback
       MYSQL_USER: appuser
       MYSQL_PASSWORD: apppass
     volumes:
       - type: tmpfs
         target: /var/lib/mysql
-        # tmpfs:
-        #   size: 1073741824  # 可选：限制tmpfs大小为1G，可删这行
-      # - mysql-data:/var/lib/mysql  # 注释：不需要持久化
       - ./backend/src/main/resources/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql:ro
       - ./backend/src/main/resources/data.sql:/docker-entrypoint-initdb.d/2-data.sql:ro
     ports:
@@ -32,21 +28,17 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: findback-back
-    # 修正：依赖MySQL健康检查通过，避免启动顺序导致的编码/连接问题
     depends_on:
       - mysql
     restart: unless-stopped
     environment:
-      SPRING_PROFILES_ACTIVE: prod  # 新增：Spring Profile
-      # 修正：补充utf8mb4相关参数，强化JDBC编码传输
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/findback?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci  # 关键：新增字符集结果和排序规则参数
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/findback?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterSetResults=utf8mb4&connectionCollation=utf8mb4_unicode_ci
       SPRING_DATASOURCE_USERNAME: appuser
       SPRING_DATASOURCE_PASSWORD: apppass
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: com.mysql.cj.jdbc.Driver
       SPRING_SQL_INIT_MODE: never
       SERVER_PORT: 8080
-    # volumes:
-    #   - uploads-data:/app/uploads  # 注释：本地开发不需要持久化
     ports:
       - "8080:8080"
 
@@ -60,8 +52,3 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
-
-# 注释掉的持久化卷定义（需要时启用）
-# volumes:
-#   mysql-data:
-#   uploads-data:

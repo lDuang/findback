@@ -15,7 +15,6 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // ResourceHandler 需要末尾的斜杠，否则有些路径无法正确解析文件
         String location = Paths.get(uploadDir).toAbsolutePath().toUri().toString();
         if (!location.endsWith("/")) {
             location = location + "/";

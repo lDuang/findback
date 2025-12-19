@@ -504,7 +504,6 @@ function formatCreatedDate(value?: string) {
 .banner-overlay {
   background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.6));
   color: #fff;
-  /* 左侧留出空间避免与轮播箭头重叠 */
   padding: 18px 32px 18px 64px;
   width: 100%;
   display: flex;

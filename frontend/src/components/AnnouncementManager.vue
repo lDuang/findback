@@ -78,7 +78,6 @@ async function addAnnouncement() {
     }
     ElMessage.success('公告已添加');
   } catch (error) {
-    // cancelled
   }
 }
 

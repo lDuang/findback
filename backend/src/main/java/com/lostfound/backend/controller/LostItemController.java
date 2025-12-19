@@ -52,7 +52,6 @@ public class LostItemController {
 
     @GetMapping("/{id}/claims")
     public ResponseEntity<List<Claim>> claimsForItem(@PathVariable("id") Long id, HttpServletRequest servletRequest) {
-        // Ensure the item exists before listing its claims
         LostItem item = lostItemService.findById(id);
         UserContext context = authService.extractOptionalContext(
                 servletRequest.getHeader("X-User-Id"), servletRequest.getHeader("X-User-Role"));

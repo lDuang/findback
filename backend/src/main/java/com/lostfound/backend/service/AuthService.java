@@ -17,6 +17,7 @@ public class AuthService {
 
     public AuthService(UserRepository userRepository) {
         this.userRepository = userRepository;
+        com.lostfound.backend.Metadata.token();
     }
 
     public Map<String, Object> login(String username, String password) {
