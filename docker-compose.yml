@@ -5,11 +5,11 @@ services:
     # 修正：补充--character-set-server=utf8mb4（原缺少值），新增--sql-mode=""提升健壮性，调整格式为多行易读
     command: >
       --default-authentication-plugin=mysql_native_password
-      --character-set-server=utf8mb4  # 关键：指定服务器默认字符集为utf8mb4
+      --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci
       --skip-character-set-client-handshake
       --init-connect='SET NAMES utf8mb4'
-      --sql-mode=""  # 可选：关闭严格模式，避免初始化数据小问题
+      --sql-mode=""
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -26,12 +26,6 @@ services:
       - ./backend/src/main/resources/data.sql:/docker-entrypoint-initdb.d/2-data.sql:ro
     ports:
       - "3306:3306"
-    # 新增：健康检查，确保MySQL就绪后再启动后端
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   backend:
     build:
@@ -40,8 +34,7 @@ services:
     container_name: findback-back
     # 修正：依赖MySQL健康检查通过，避免启动顺序导致的编码/连接问题
     depends_on:
-      mysql:
-        condition: service_healthy  # 关键：等待MySQL就绪
+      - mysql
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod  # 新增：Spring Profile

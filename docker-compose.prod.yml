@@ -8,7 +8,7 @@ services:
       --collation-server=utf8mb4_unicode_ci
       --skip-character-set-client-handshake
       --init-connect='SET NAMES utf8mb4'
-      --sql-mode=""  # 新增：关闭严格模式，提升初始化兼容性
+      --sql-mode=""
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -25,20 +25,13 @@ services:
       - ./backend/src/main/resources/data.sql:/docker-entrypoint-initdb.d/2-data.sql:ro
     ports:
       - "3306:3306"
-    # 新增：健康检查，确保MySQL就绪后启动后端
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   backend:
     image: ghcr.io/lduang/findback-back:latest
     container_name: findback-back
     # 修正：依赖MySQL健康检查通过，避免连接失败/编码问题
     depends_on:
-      mysql:
-        condition: service_healthy  # 关键：等待MySQL就绪
+      - mysql
     restart: unless-stopped
     environment:
       SPRING_PROFILES_ACTIVE: prod
