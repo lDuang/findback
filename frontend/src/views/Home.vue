@@ -60,7 +60,7 @@
             >
               <div class="banner-overlay">
                 <div class="banner-meta">
-                  <p class="card-eyebrow">{{ formatCreatedAt(banner.createdAt) || '最新' }}</p>
+                  <p class="card-eyebrow">{{ formatCreatedDate(banner.createdAt) || '最新' }}</p>
                   <h3>{{ banner.title }}</h3>
                   <p class="banner-desc">{{ banner.description || '轻点图片切换或跳转' }}</p>
                 </div>
@@ -160,7 +160,7 @@ import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import client from '../api/client';
 import { extractErrorMessage } from '../utils/error';
-import { formatDateTime } from '../utils/format';
+import { formatDateTime, formatDateYMD } from '../utils/format';
 import { normalizeAnnouncement, normalizeBanner } from '../utils/normalizers';
 import type { Announcement, Banner, StatsOverview } from '../types';
 
@@ -294,6 +294,10 @@ function openLink(link?: string) {
 
 function formatCreatedAt(value?: string) {
   return formatDateTime(value);
+}
+
+function formatCreatedDate(value?: string) {
+  return formatDateYMD(value);
 }
 </script>
 
@@ -500,10 +504,10 @@ function formatCreatedAt(value?: string) {
 .banner-overlay {
   background: linear-gradient(90deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.6));
   color: #fff;
-  padding: 16px 18px;
+  padding: 18px 22px;
   width: 100%;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   gap: 12px;
   pointer-events: none;
@@ -514,6 +518,7 @@ function formatCreatedAt(value?: string) {
   flex-direction: column;
   gap: 4px;
   pointer-events: auto;
+  max-width: 68%;
 }
 
 .banner-overlay h3 {
@@ -529,6 +534,8 @@ function formatCreatedAt(value?: string) {
   display: flex;
   align-items: center;
   pointer-events: auto;
+  margin-left: auto;
+  padding-left: 24px;
 }
 
 .announcement h4 {
