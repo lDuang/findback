@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page-shell user-page">
     <el-alert
       class="user-alert"
       title="个人视图：仅展示属于当前账号的数据"
@@ -171,18 +171,6 @@ const paginatedClaims = computed(() => {
 </script>
 
 <style scoped>
-.page {
-  max-width: 960px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 24px 16px 48px;
-  background: radial-gradient(circle at 20% 20%, rgba(79, 70, 229, 0.05), transparent 34%),
-    radial-gradient(circle at 80% 16%, rgba(16, 185, 129, 0.05), transparent 32%),
-    #f9fafb;
-}
-
 .user-alert {
   margin-bottom: 4px;
 }

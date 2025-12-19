@@ -62,9 +62,11 @@ function logout() {
 </script>
 
 <style scoped>
+@import './styles/theme.css';
+
 .app-shell {
   min-height: 100vh;
-  background: #f8fafc;
+  background: var(--surface-color);
 }
 
 .restore-screen {
@@ -92,10 +94,10 @@ function logout() {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  border-bottom: 1px solid var(--el-border-color);
-  background: linear-gradient(90deg, rgba(79, 70, 229, 0.08), rgba(16, 185, 129, 0.08));
-  backdrop-filter: blur(12px);
-  box-shadow: 0 8px 24px -16px rgba(15, 23, 42, 0.3);
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  background: #ffffff;
+  box-shadow: 0 8px 18px -16px rgba(15, 23, 42, 0.2);
 }
 
 .brand {
@@ -139,7 +141,7 @@ function logout() {
 @media (max-width: 768px) {
   .app-header {
     flex-wrap: wrap;
-    padding: 12px 8px;
+    padding: 12px 16px;
   }
 
   .user-panel {

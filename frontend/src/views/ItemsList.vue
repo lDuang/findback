@@ -1,5 +1,5 @@
 <template>
-  <div class="page">
+  <div class="page-shell items-page">
     <el-alert
       class="role-alert"
       :title="roleTitle"
@@ -110,13 +110,15 @@ const isUser = computed(() => normalizedRole.value === 'USER');
 const canCreate = computed(() => !!auth.user);
 const roleTitle = computed(() => {
   if (isAdmin.value) return '管理员模式：正在查看全量物品';
-  if (isUser.value) return '普通用户模式：仅展示我的物品';
-  return '访客模式：请登录以查看和管理个人物品';
+  if (isUser.value) return '普通用户模式：可浏览全部失物并提交认领';
+  return '访客模式：可浏览全部物品，登录后可提交认领与发布';
 });
 const roleDescription = computed(() => {
-  if (isAdmin.value) return '管理员可以浏览和维护所有用户的物品，并可在其他页面管理公告和认领。';
-  if (isUser.value) return '列表已根据您的账号进行过滤，仅包含您自己创建的物品记录。';
-  return '未登录状态下仅进行基础浏览，登录后即可按账号维度过滤并创建物品。';
+  if (isAdmin.value)
+    return '管理员可以浏览和维护所有用户的物品，并可在其他页面管理公告和认领。';
+  if (isUser.value)
+    return '普通用户可查看全部失物，提交认领或新增记录，但状态更新与删除仅限管理员或物品所有者。';
+  return '未登录状态下可浏览和筛选所有物品，登录后才可提交认领或创建失物。';
 });
 
 const statusOptions = computed(() => [
@@ -147,15 +149,8 @@ watch(
 async function loadItems() {
   loading.value = true;
   loadError.value = false;
-  const params: Record<string, unknown> = {};
-  if (isUser.value) {
-    params.userId = auth.user?.userId;
-  }
   try {
-    const { data } = await client.get<LostItem[]>(
-      '/items',
-      Object.keys(params).length ? { params } : undefined
-    );
+    const { data } = await client.get<LostItem[]>('/items');
     if (Array.isArray(data)) {
       items.value = data.map(normalizeItem);
       if (!data.length) {
@@ -245,18 +240,6 @@ function formatCreatedAt(_row: LostItem, _column: unknown, cellValue: string) {
 </script>
 
 <style scoped>
-.page {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 16px 48px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  background: radial-gradient(circle at 18% 20%, rgba(79, 70, 229, 0.05), transparent 32%),
-    radial-gradient(circle at 82% 16%, rgba(16, 185, 129, 0.05), transparent 30%),
-    #f9fafb;
-}
-
 .role-alert {
   margin-bottom: 16px;
 }
@@ -283,7 +266,7 @@ function formatCreatedAt(_row: LostItem, _column: unknown, cellValue: string) {
 
 .panel {
   border-radius: 14px;
-  box-shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.35);
+  box-shadow: var(--el-box-shadow-lighter);
 }
 
 .filters {
